@@ -21,5 +21,6 @@ fi
 
 printf "%s" "$GITHUB_TOKEN" | gh auth login --hostname github.com --with-token
 unset GITHUB_TOKEN
+gh auth setup-git --hostname github.com
 
 bash publish-github-pages.sh "$REPO_NAME"
