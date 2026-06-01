@@ -244,6 +244,7 @@ h1 {
 }
 
 .choice-swatch {
+  position: relative;
   width: 74px;
   height: 74px;
   display: inline-block;
@@ -270,6 +271,44 @@ h1 {
   border-right: 42px solid transparent;
   border-bottom: 78px solid var(--shape-color);
   background: transparent !important;
+}
+
+.shape-heart {
+  clip-path: polygon(50% 86%, 16% 54%, 7% 34%, 13% 16%, 29% 8%, 50% 25%, 71% 8%, 87% 16%, 93% 34%, 84% 54%);
+}
+
+.shape-star {
+  clip-path: polygon(50% 2%, 61% 35%, 96% 35%, 68% 56%, 79% 91%, 50% 70%, 21% 91%, 32% 56%, 4% 35%, 39% 35%);
+}
+
+.shape-face {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 34px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border-bottom: 4px solid var(--ink);
+  border-radius: 0 0 999px 999px;
+}
+
+.shape-face::before,
+.shape-face::after {
+  position: absolute;
+  top: -12px;
+  width: 7px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ink);
+  content: "";
+}
+
+.shape-face::before {
+  left: 4px;
+}
+
+.shape-face::after {
+  right: 4px;
 }
 
 .mode-strip {
