@@ -11,6 +11,7 @@
   --violet: #8c6ff7;
   --soil: #9d6b47;
   --focus: #1c6b45;
+  --outline: rgba(36, 49, 43, 0.16);
   --shadow: 0 14px 34px rgba(36, 49, 43, 0.16);
 }
 
@@ -31,7 +32,8 @@ html {
 body {
   color: var(--ink);
   background:
-    radial-gradient(circle at 20% 10%, rgba(255, 212, 90, 0.28), transparent 24rem),
+    repeating-linear-gradient(90deg, rgba(36, 49, 43, 0.018) 0 1px, transparent 1px 42px),
+    radial-gradient(circle at 20% 10%, rgba(255, 212, 90, 0.24), transparent 24rem),
     linear-gradient(180deg, #eaf8ff 0%, #f7fbef 64%, #eef8e9 100%);
   font-family: ui-rounded, "Arial Rounded MT Bold", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   min-height: 100svh;
@@ -76,8 +78,8 @@ button {
     radial-gradient(circle at 50% 38%, var(--sun) 0 21%, transparent 22%),
     radial-gradient(circle at 50% 66%, var(--leaf) 0 17%, transparent 18%),
     linear-gradient(180deg, #ffffff 0%, #f6ffe8 100%);
-  border: 3px solid rgba(36, 49, 43, 0.12);
-  box-shadow: var(--shadow);
+  border: 3px solid var(--outline);
+  box-shadow: 0 4px 0 rgba(36, 49, 43, 0.08), var(--shadow);
 }
 
 h1 {
@@ -108,9 +110,9 @@ h1 {
 
 .stats span,
 .mode-button {
-  border: 2px solid rgba(36, 49, 43, 0.1);
+  border: 2px solid rgba(36, 49, 43, 0.13);
   background: rgba(255, 253, 244, 0.86);
-  box-shadow: 0 8px 20px rgba(36, 49, 43, 0.08);
+  box-shadow: 0 4px 0 rgba(36, 49, 43, 0.06), 0 8px 20px rgba(36, 49, 43, 0.08);
 }
 
 .stats span {
@@ -123,16 +125,31 @@ h1 {
 }
 
 .stage {
+  position: relative;
   width: 100%;
   overflow: hidden;
-  border: 4px solid rgba(36, 49, 43, 0.12);
+  border: 5px solid var(--outline);
   border-radius: 8px;
   background: var(--sky);
-  box-shadow: var(--shadow);
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 253, 244, 0.58),
+    0 6px 0 rgba(36, 49, 43, 0.08),
+    var(--shadow);
+}
+
+.stage::before {
+  position: absolute;
+  inset: 9px;
+  z-index: 1;
+  border: 2px dashed rgba(36, 49, 43, 0.08);
+  border-radius: 5px;
+  pointer-events: none;
+  content: "";
 }
 
 #gameCanvas {
   display: block;
+  position: relative;
   width: 100%;
   aspect-ratio: 48 / 31;
   height: auto;
@@ -152,9 +169,11 @@ h1 {
   min-width: 0;
   padding: 12px 18px;
   border-radius: 8px;
-  border: 2px solid rgba(36, 49, 43, 0.1);
-  background: rgba(255, 253, 244, 0.92);
-  box-shadow: 0 8px 20px rgba(36, 49, 43, 0.08);
+  border: 3px solid rgba(36, 49, 43, 0.13);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.52), transparent 34%),
+    rgba(255, 253, 244, 0.94);
+  box-shadow: 0 4px 0 rgba(36, 49, 43, 0.06), 0 8px 20px rgba(36, 49, 43, 0.08);
 }
 
 #promptText {
@@ -184,9 +203,11 @@ h1 {
   width: 70px;
   min-height: 70px;
   border-radius: 50%;
-  background: var(--sun);
-  border: 3px solid rgba(36, 49, 43, 0.12);
-  box-shadow: 0 8px 20px rgba(36, 49, 43, 0.12);
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255, 253, 244, 0.72), transparent 26%),
+    var(--sun);
+  border: 3px solid rgba(36, 49, 43, 0.15);
+  box-shadow: 0 5px 0 rgba(36, 49, 43, 0.09), 0 8px 20px rgba(36, 49, 43, 0.12);
   font-size: 1.25rem;
   font-weight: 900;
 }
@@ -200,17 +221,35 @@ h1 {
 
 .choice-button {
   position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 112px;
   padding: 12px;
   border-radius: 8px;
-  border: 4px solid rgba(36, 49, 43, 0.12);
-  background: var(--paper);
-  box-shadow: 0 10px 24px rgba(36, 49, 43, 0.1);
+  border: 4px solid rgba(36, 49, 43, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 253, 244, 0.92) 38%, var(--paper) 100%);
+  box-shadow: 0 6px 0 rgba(36, 49, 43, 0.08), 0 10px 24px rgba(36, 49, 43, 0.1);
   font-size: 3rem;
   font-weight: 950;
+}
+
+.choice-button::before {
+  position: absolute;
+  top: 9px;
+  left: 12px;
+  right: 12px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  content: "";
+}
+
+.choice-button > * {
+  position: relative;
+  z-index: 1;
 }
 
 .choice-button:active,
@@ -225,12 +264,16 @@ h1 {
 
 .choice-button.correct {
   border-color: var(--leaf);
-  background: #efffe8;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(239, 255, 232, 0.94)),
+    #efffe8;
 }
 
 .choice-button.wrong {
   border-color: var(--berry);
-  background: #fff0f2;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 240, 242, 0.95)),
+    #fff0f2;
 }
 
 .choice-number {
@@ -239,8 +282,11 @@ h1 {
   width: 76px;
   height: 76px;
   border-radius: 50%;
-  background: #f6fbff;
-  border: 3px solid rgba(36, 49, 43, 0.12);
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.86), transparent 28%),
+    #f6fbff;
+  border: 3px solid rgba(36, 49, 43, 0.14);
+  box-shadow: inset 0 -5px 0 rgba(93, 169, 233, 0.08);
 }
 
 .choice-swatch {
@@ -248,7 +294,18 @@ h1 {
   width: 74px;
   height: 74px;
   display: inline-block;
-  filter: drop-shadow(0 5px 0 rgba(36, 49, 43, 0.1));
+  filter: drop-shadow(0 5px 0 rgba(36, 49, 43, 0.12));
+}
+
+.choice-swatch::before {
+  position: absolute;
+  top: 13%;
+  left: 18%;
+  width: 24%;
+  height: 18%;
+  border-radius: 50%;
+  background: rgba(255, 253, 244, 0.45);
+  content: "";
 }
 
 .shape-circle {
@@ -271,6 +328,10 @@ h1 {
   border-right: 42px solid transparent;
   border-bottom: 78px solid var(--shape-color);
   background: transparent !important;
+}
+
+.shape-triangle::before {
+  display: none;
 }
 
 .shape-heart {

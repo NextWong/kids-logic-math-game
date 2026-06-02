@@ -9,6 +9,10 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - Implemented answer choices, gentle wrong-answer feedback, correct-answer reward, garden growth, voice prompt button, mode switching, keyboard shortcuts, fullscreen key, `advanceTime(ms)`, and `render_game_to_text`.
 - Added mobile/iPad support: PWA manifest, service worker cache, Apple mobile meta tags, touch icon, safe-area padding, coarse-pointer sizing, canvas tap behavior, and `serve-mobile.sh` for same-Wi-Fi access.
 - Added more preschool-friendly fun: original cartoon animal friends, unlock rewards every 3 stars, animal tap reactions, speech bubbles, rainbow/butterflies, star/heart particles, and cute faces on objects/shapes.
+- Replaced sharp single-tone click feedback with softer layered WebAudio chime/pluck sounds for correct, wrong, animal, and canvas tap interactions.
+- Improved speech prompt behavior by preferring available Chinese system voices and using a slower, softer delivery.
+- Polished the comic look with paper grain, sun rays, stronger canvas frame treatment, soil/grass details, object shadows, shape highlights, and richer DOM button/card styling.
+- Bumped the service worker cache to `kids-math-garden-v5` so family devices refresh the updated assets.
 
 ## Verification Notes
 
@@ -24,6 +28,7 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - Enhanced flow checked locally: three correct answers unlock the panda friend and update `render_game_to_text`.
 - Responsive checks passed at desktop and 390x844 mobile viewport; no obvious text overlap or broken controls.
 - Browser metadata check confirmed manifest, Apple icon, service worker support, active controller, and 4 answer buttons.
+- Sound/comic polish verification passed locally with `agent-browser`: desktop full-page screenshot, 390x844 mobile screenshot, wrong-answer click, correct-answer click, automatic next-question transition, and speak-button click all completed with no console errors.
 - Restarted the server with `bash serve-mobile.sh`; current LAN URL printed as `http://192.168.10.109:8012` for same-Wi-Fi phone/iPad testing.
 - Tried Vercel device login again; it failed during token exchange with TLS disconnect. Added token-based deployment scripts so the user can paste a Vercel Personal Token locally without exposing it in chat or writing it to disk.
 - Switched publishing plan to GitHub Pages. Added `.github/workflows/pages.yml`, `.nojekyll`, `publish-github-pages.sh`, and `publish-github-pages-token.sh`.
@@ -31,7 +36,7 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - GitHub Pages deployment later succeeded. Verified `https://nextwong.github.io/kids-logic-math-game/` returns HTTP 200 and loads the live game.
 - Added `document.body.dataset.gameState` mirror for browser environments that cannot access page globals from an isolated test context.
 - Added an inline favicon so local server logs stay clean.
-- The dedicated `develop-web-game` Playwright client could not run because the environment has no `playwright` package installed; verification used the Codex in-app browser instead to avoid adding a runtime dependency to this zero-dependency game.
+- The dedicated `develop-web-game` Playwright client could not run because the environment has no `playwright` package installed; verification used browser automation instead to avoid adding a runtime dependency to this zero-dependency game.
 
 ## Next Ideas
 

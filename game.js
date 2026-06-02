@@ -93,6 +93,7 @@ const state = {
 };
 
 let lastFrame = 0;
+let preferredSpeechVoice = null;
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -277,8 +278,7 @@ function selectChoice(key) {
     state.animalBounce = 1;
     addGardenBloom();
     burstParticles();
-    playTone(660, 0.08, "sine");
-    window.setTimeout(() => playTone(880, 0.08, "sine"), 90);
+    playSound("correct");
   } else {
     state.feedback = "wrong";
     state.feedbackMessage = "再看一看，可以再试一次。";
@@ -287,7 +287,7 @@ function selectChoice(key) {
     state.animalBounce = 0.35;
     state.feedbackTimer = 850;
     state.triedKeys.add(key);
-    playTone(220, 0.08, "triangle");
+    playSound("wrong");
   }
   syncDom();
   render();
@@ -333,30 +333,113 @@ function addTapSparkles(x, y) {
   }
 }
 
-function playTone(frequency, duration, type) {
+function getAudioContext() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return;
-  if (!playTone.context) playTone.context = new AudioContext();
-  const audio = playTone.context;
-  const oscillator = audio.createOscillator();
+  if (!AudioContext) return null;
+  if (!getAudioContext.context) getAudioContext.context = new AudioContext();
+  const audio = getAudioContext.context;
+  if (audio.state === "suspended") audio.resume().catch(() => {});
+  return audio;
+}
+
+function playPluck(frequency, options = {}) {
+  const audio = getAudioContext();
+  if (!audio) return;
+
+  const delay = options.delay || 0;
+  const duration = options.duration || 0.42;
+  const gainValue = options.gain || 0.09;
+  const now = audio.currentTime + delay;
+  const main = audio.createOscillator();
+  const overtone = audio.createOscillator();
+  const filter = audio.createBiquadFilter();
   const gain = audio.createGain();
-  oscillator.type = type;
-  oscillator.frequency.value = frequency;
-  gain.gain.setValueAtTime(0.001, audio.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.14, audio.currentTime + 0.015);
-  gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
-  oscillator.connect(gain);
-  gain.connect(audio.destination);
-  oscillator.start();
-  oscillator.stop(audio.currentTime + duration + 0.02);
+  const panner = audio.createStereoPanner ? audio.createStereoPanner() : null;
+
+  main.type = options.type || "sine";
+  main.frequency.setValueAtTime(frequency, now);
+  main.detune.setValueAtTime(-5, now);
+  overtone.type = "sine";
+  overtone.frequency.setValueAtTime(frequency * 2.01, now);
+  overtone.detune.setValueAtTime(4, now);
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(options.filter || 2600, now);
+  filter.Q.setValueAtTime(0.7, now);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(gainValue, now + 0.018);
+  gain.gain.exponentialRampToValueAtTime(gainValue * 0.34, now + duration * 0.32);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  main.connect(filter);
+  overtone.connect(filter);
+  filter.connect(gain);
+  if (panner) {
+    panner.pan.setValueAtTime(options.pan || 0, now);
+    gain.connect(panner);
+    panner.connect(audio.destination);
+  } else {
+    gain.connect(audio.destination);
+  }
+
+  main.start(now);
+  overtone.start(now);
+  main.stop(now + duration + 0.04);
+  overtone.stop(now + duration + 0.04);
+}
+
+function playSound(kind) {
+  if (kind === "correct") {
+    [
+      [523.25, 0, -0.18],
+      [659.25, 0.08, 0],
+      [783.99, 0.17, 0.16],
+    ].forEach(([frequency, delay, pan]) => playPluck(frequency, { delay, pan, gain: 0.075, duration: 0.48, filter: 3200 }));
+    return;
+  }
+
+  if (kind === "wrong") {
+    playPluck(293.66, { type: "triangle", gain: 0.055, duration: 0.34, filter: 1500, pan: -0.1 });
+    window.setTimeout(() => playPluck(246.94, { type: "sine", gain: 0.038, duration: 0.3, filter: 1300, pan: 0.1 }), 70);
+    return;
+  }
+
+  if (kind === "animal") {
+    playPluck(587.33, { gain: 0.062, duration: 0.34, filter: 2800, pan: -0.08 });
+    window.setTimeout(() => playPluck(739.99, { gain: 0.052, duration: 0.32, filter: 3000, pan: 0.12 }), 75);
+    return;
+  }
+
+  playPluck(440, { gain: 0.035, duration: 0.24, filter: 2200 });
+}
+
+function chooseSpeechVoice() {
+  if (!window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const chineseVoices = voices.filter((voice) => /^zh/i.test(voice.lang));
+  const naturalNames = ["xiaoxiao", "tingting", "meijia", "sin-ji", "yunxi", "google 普通话", "google mandarin"];
+  return (
+    chineseVoices.find((voice) => naturalNames.some((name) => voice.name.toLowerCase().includes(name))) ||
+    chineseVoices.find((voice) => voice.lang.toLowerCase() === "zh-cn") ||
+    chineseVoices[0] ||
+    null
+  );
 }
 
 function speakPrompt() {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(state.challenge.prompt);
-  utterance.lang = "zh-CN";
-  utterance.rate = 0.88;
+  const voice = preferredSpeechVoice || chooseSpeechVoice();
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+  } else {
+    utterance.lang = "zh-CN";
+  }
+  utterance.rate = 0.82;
+  utterance.pitch = 1.06;
+  utterance.volume = 0.92;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -375,7 +458,7 @@ function handleCanvasTap(event) {
     state.mascotMessage = `${friend.name}跳起来啦！`;
     state.mascotMessageTimer = 1500;
     state.animalBounce = 1;
-    playTone(520, 0.07, "sine");
+    playSound("animal");
     syncDom();
     render();
     return;
@@ -383,6 +466,7 @@ function handleCanvasTap(event) {
 
   state.mascotMessage = "听题目，再选答案！";
   state.mascotMessageTimer = 1200;
+  playSound("tap");
   speakPrompt();
 }
 
@@ -446,9 +530,18 @@ function drawBackground() {
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
+  drawPaperGrain();
+  drawSunRays(842, 86);
   ctx.fillStyle = palette.sun;
   ctx.beginPath();
   ctx.arc(842, 86, 48, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.1)";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255, 253, 244, 0.5)";
+  ctx.beginPath();
+  ctx.ellipse(825, 68, 12, 8, -0.55, 0, Math.PI * 2);
   ctx.fill();
 
   drawCloud(168, 92, 1.05);
@@ -467,13 +560,94 @@ function drawBackground() {
   ctx.lineTo(0, HEIGHT);
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.08)";
+  ctx.lineWidth = 4;
+  ctx.stroke();
 
   ctx.fillStyle = palette.grass;
   ctx.fillRect(0, FLOOR_Y, WIDTH, HEIGHT - FLOOR_Y);
+  drawGrassMarks();
 
   ctx.fillStyle = palette.soil;
   roundRect(52, FLOOR_Y + 54, WIDTH - 104, 86, 36);
   ctx.fill();
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.12)";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  drawSoilPebbles();
+  drawComicFrame();
+}
+
+function drawPaperGrain() {
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 253, 244, 0.2)";
+  for (let x = 18; x < WIDTH; x += 54) {
+    for (let y = 16; y < HEIGHT; y += 48) {
+      const wobble = ((x * 7 + y * 11) % 13) - 6;
+      ctx.beginPath();
+      ctx.arc(x + wobble, y - wobble * 0.3, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawSunRays(x, y) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(255, 212, 90, 0.38)";
+  ctx.lineWidth = 6;
+  ctx.lineCap = "round";
+  for (let index = 0; index < 12; index += 1) {
+    const angle = (Math.PI * 2 * index) / 12;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(angle) * 64, y + Math.sin(angle) * 64);
+    ctx.lineTo(x + Math.cos(angle) * 84, y + Math.sin(angle) * 84);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawGrassMarks() {
+  ctx.save();
+  ctx.strokeStyle = "rgba(47, 155, 92, 0.22)";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  for (let x = 34; x < WIDTH; x += 48) {
+    const y = FLOOR_Y + 20 + ((x * 5) % 58);
+    ctx.beginPath();
+    ctx.moveTo(x, y + 12);
+    ctx.quadraticCurveTo(x + 7, y + 2, x + 15, y + 10);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawSoilPebbles() {
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 253, 244, 0.22)";
+  for (let index = 0; index < 16; index += 1) {
+    const x = 92 + index * 52;
+    const y = FLOOR_Y + 82 + ((index * 17) % 38);
+    ctx.beginPath();
+    ctx.ellipse(x, y, 7, 3.5, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawComicFrame() {
+  ctx.save();
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.1)";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.roundRect(13, 13, WIDTH - 26, HEIGHT - 26, 18);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255, 253, 244, 0.48)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(21, 21, WIDTH - 42, HEIGHT - 42, 14);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawCloud(x, y, scale) {
@@ -487,6 +661,9 @@ function drawCloud(x, y, scale) {
   ctx.arc(70, 12, 24, 0, Math.PI * 2);
   ctx.roundRect(-26, 10, 116, 30, 16);
   ctx.fill();
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.07)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -722,6 +899,10 @@ function drawPatternChallenge() {
 }
 
 function drawQuestionBadge(text, x, y) {
+  ctx.fillStyle = "rgba(36, 49, 43, 0.08)";
+  ctx.beginPath();
+  ctx.roundRect(x - 88, y - 28, 176, 58, 26);
+  ctx.fill();
   ctx.fillStyle = "rgba(255, 253, 244, 0.84)";
   ctx.strokeStyle = "rgba(36, 49, 43, 0.12)";
   ctx.lineWidth = 3;
@@ -793,6 +974,15 @@ function drawCuteFace(x, y, size, eyeColor = palette.ink) {
   ctx.lineCap = "butt";
 }
 
+function drawObjectShadow(x, y, width, height, alpha = 0.1) {
+  ctx.save();
+  ctx.fillStyle = `rgba(36, 49, 43, ${alpha})`;
+  ctx.beginPath();
+  ctx.ellipse(x, y, width, height, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawStarPath(x, y, outer, inner) {
   for (let index = 0; index < 10; index += 1) {
     const radius = index % 2 === 0 ? outer : inner;
@@ -823,6 +1013,8 @@ function drawHeartPath(x, y, size) {
 }
 
 function drawItem(item, x, y, size) {
+  drawObjectShadow(x, y + size * 0.48, size * 0.38, size * 0.09, 0.08);
+
   if (item.id === "flower") {
     ctx.strokeStyle = palette.grassDark;
     ctx.lineWidth = 5;
@@ -921,6 +1113,7 @@ function drawItem(item, x, y, size) {
 }
 
 function drawShapeToken(token, x, y, size) {
+  drawObjectShadow(x + 3, y + size * 0.4, size * 0.34, size * 0.08, 0.08);
   ctx.fillStyle = token.color;
   ctx.strokeStyle = "rgba(36, 49, 43, 0.14)";
   ctx.lineWidth = 4;
@@ -947,6 +1140,10 @@ function drawShapeToken(token, x, y, size) {
   }
   ctx.fill();
   ctx.stroke();
+  ctx.fillStyle = "rgba(255, 253, 244, 0.34)";
+  ctx.beginPath();
+  ctx.ellipse(x - size * 0.16, y - size * 0.2, size * 0.11, size * 0.07, -0.55, 0, Math.PI * 2);
+  ctx.fill();
   drawCuteFace(x, y + size * 0.04, size * 0.34);
 }
 
@@ -1073,6 +1270,12 @@ function registerServiceWorker() {
     navigator.serviceWorker.register("./sw.js").catch((error) => {
       console.warn("Service worker registration failed:", error);
     });
+  });
+}
+
+if ("speechSynthesis" in window) {
+  window.speechSynthesis.addEventListener?.("voiceschanged", () => {
+    preferredSpeechVoice = chooseSpeechVoice();
   });
 }
 
