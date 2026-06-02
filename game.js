@@ -15,6 +15,8 @@ const ui = {
 const WIDTH = 960;
 const HEIGHT = 620;
 const FLOOR_Y = 472;
+const AUDIO_VERSION = "6";
+const PROMPT_AUDIO_BASE = "./audio/prompts";
 const MODE_LABELS = {
   mixed: "混合练习",
   count: "数数练习",
@@ -94,6 +96,8 @@ const state = {
 
 let lastFrame = 0;
 let preferredSpeechVoice = null;
+let promptAudio = null;
+let promptAudioSrc = "";
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -112,6 +116,10 @@ function shuffle(list) {
   return copy;
 }
 
+function promptAudioPath(key) {
+  return `${PROMPT_AUDIO_BASE}/${key}.mp3?v=${AUDIO_VERSION}`;
+}
+
 function numberChoices(answer, min = 1, max = 8) {
   const values = new Set([answer]);
   const candidates = shuffle(
@@ -128,9 +136,12 @@ function numberChoices(answer, min = 1, max = 8) {
 function makeCountChallenge() {
   const count = randomInt(1, 6);
   const item = sample(itemKinds);
+  const promptAudioKey = `count-${item.id}-${count}`;
   return {
     type: "count",
     prompt: `花园里有几颗${item.label}？`,
+    promptAudioKey,
+    promptAudio: promptAudioPath(promptAudioKey),
     answerKey: String(count),
     answerText: String(count),
     choices: numberChoices(count, 1, 8),
@@ -143,9 +154,12 @@ function makeAddChallenge() {
   const right = randomInt(1, 6 - left);
   const total = left + right;
   const item = sample(itemKinds);
+  const promptAudioKey = `add-${item.id}-${left}-${right}`;
   return {
     type: "add",
     prompt: `${left} 加 ${right}，一共有几颗${item.label}？`,
+    promptAudioKey,
+    promptAudio: promptAudioPath(promptAudioKey),
     answerKey: String(total),
     answerText: String(total),
     choices: numberChoices(total, 1, 8),
@@ -172,6 +186,8 @@ function makePatternChallenge() {
   return {
     type: "pattern",
     prompt: "接下来应该是哪一个图形？",
+    promptAudioKey: "pattern-next-shape",
+    promptAudio: promptAudioPath("pattern-next-shape"),
     answerKey: answerToken.id,
     answerText: answerToken.name,
     choices,
@@ -200,6 +216,7 @@ function setChallenge(nextRound = false) {
   state.lastSelectedKey = "";
   state.triedKeys = new Set();
   renderChoices();
+  preloadPromptAudio();
   syncDom();
   render();
 }
@@ -426,7 +443,30 @@ function chooseSpeechVoice() {
   );
 }
 
-function speakPrompt() {
+function preloadPromptAudio() {
+  const src = state.challenge?.promptAudio || "";
+  promptAudioSrc = src;
+  promptAudio = null;
+  if (!src) return;
+  promptAudio = new Audio(src);
+  promptAudio.preload = "auto";
+  promptAudio.volume = 0.95;
+  promptAudio.load();
+}
+
+function stopPromptAudio() {
+  if (promptAudio) {
+    promptAudio.pause();
+    try {
+      promptAudio.currentTime = 0;
+    } catch (error) {
+      // Some browsers disallow seeking before metadata is ready.
+    }
+  }
+  window.speechSynthesis?.cancel();
+}
+
+function speakPromptWithSystemVoice() {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(state.challenge.prompt);
@@ -441,6 +481,22 @@ function speakPrompt() {
   utterance.pitch = 1.06;
   utterance.volume = 0.92;
   window.speechSynthesis.speak(utterance);
+}
+
+function speakPrompt() {
+  if (!state.challenge) return;
+  stopPromptAudio();
+  const src = state.challenge.promptAudio;
+  if (!src) {
+    speakPromptWithSystemVoice();
+    return;
+  }
+
+  const audio = promptAudio && promptAudioSrc === src ? promptAudio : new Audio(src);
+  promptAudio = audio;
+  promptAudioSrc = src;
+  promptAudio.volume = 0.95;
+  promptAudio.play().catch(() => speakPromptWithSystemVoice());
 }
 
 function handleCanvasTap(event) {
@@ -1233,6 +1289,7 @@ function renderGameToText() {
     unlockedAnimals: animalFriends.slice(0, state.unlockedAnimals).map((friend) => friend.name),
     mascotMessage: state.mascotMessageTimer > 0 ? state.mascotMessage : "",
     prompt: challenge.prompt,
+    promptAudioKey: challenge.promptAudioKey,
     answer: challenge.answerText,
     choices: challenge.choices.map((choice, index) => ({
       index: index + 1,
