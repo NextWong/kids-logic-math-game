@@ -53,6 +53,9 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - Mobile v17 verification passed locally with `agent-browser`: 390x844 screenshots checked for 6-year-old count-16, add 9+7, subtract 16-9, and missing-addend 7+?=16. Formula panels no longer cover countable objects, 4-column high-count layouts stayed readable, age pools sampled correctly, and no console/page errors were found.
 - Expanded the age ladder to 7 years old for v19. Added three new challenge types: `double` in math mode plus `mirror` and `size-sort` in logic mode. 7-year-olds now go to 20, include doubles, 2/3/4/5 skip-counting, mirror logic, and size ordering.
 - Bumped HTML asset query strings and the service worker cache to `v19` so family devices refresh the new age-7 content instead of keeping the old 3-6 cache.
+- Tightened age separation for the next iteration: 4-year-olds now stay mostly in the 5-7 band, 5-year-olds in 8-12, 6-year-olds in 13-16, and 7-year-olds in 17-20. Higher ages no longer keep reusing the same easy ranges as the lower groups.
+- Added animated answer explanations for arithmetic questions. After a correct add/subtract/missing-addend/double answer, the game now pauses longer and shows visual object-based hints for how the result is formed.
+- Bumped static asset references and service worker cache again to `v20` so devices already on v19 refresh the new answer-explanation behavior.
 - Restarted the server with `bash serve-mobile.sh`; current LAN URL printed as `http://192.168.10.109:8012` for same-Wi-Fi phone/iPad testing.
 - Tried Vercel device login again; it failed during token exchange with TLS disconnect. Added token-based deployment scripts so the user can paste a Vercel Personal Token locally without exposing it in chat or writing it to disk.
 - Switched publishing plan to GitHub Pages. Added `.github/workflows/pages.yml`, `.nojekyll`, `publish-github-pages.sh`, and `publish-github-pages-token.sh`.
@@ -62,6 +65,7 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - Added an inline favicon so local server logs stay clean.
 - The dedicated `develop-web-game` Playwright client could not run because the environment has no `playwright` package installed; verification used browser automation instead to avoid adding a runtime dependency to this zero-dependency game.
 - v19 verification passed locally with `agent-browser`: default screenshot showed the new 7-year-old age button, logic-mode sampling for age 7 produced both `mirror` and `size-sort`, math-mode sampling for age 7 produced `double`, and a screenshot confirmed the `双倍数` scene renders correctly with the new age-7 difficulty label.
+- v20 verification passed locally with `agent-browser`: sampled age 4 mixed questions in the 5-7 band, age 5 mixed around 8-12, age 6 math around 10-16 with missing-addend/double, and age 7 logic with mirror/size-sort/sequence. Correct-answer arithmetic flow now pauses with a visual explanation hint before advancing.
 
 ## Next Ideas
 

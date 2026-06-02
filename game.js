@@ -47,8 +47,11 @@ const UI_TEXT = {
 const AGE_CONFIGS = {
   3: {
     rounds: 6,
+    minCount: 1,
     maxCount: 4,
+    minMathAnswer: 2,
     maxSum: 4,
+    addPartMin: 1,
     addPartMax: 2,
     patternLevel: 1,
     compareMax: 0,
@@ -60,58 +63,74 @@ const AGE_CONFIGS = {
   },
   4: {
     rounds: 6,
+    minCount: 5,
     maxCount: 7,
+    minMathAnswer: 4,
     maxSum: 7,
+    addPartMin: 2,
     addPartMax: 4,
     patternLevel: 2,
+    compareMin: 3,
     compareMax: 6,
-    logicTypes: ["match", "odd", "pair", "compare"],
+    logicTypes: ["odd", "pair", "compare"],
     mathTypes: ["add"],
-    mixedTypes: ["count", "count", "add", "pattern", "logic", "logic"],
-    difficultyZh: "4岁：数到7，7以内加法，找不同、配对和比较多少。",
-    difficultyEn: "Age 4: count to 7, sums to 7, odd one, pairs, more/less.",
+    mixedTypes: ["count", "add", "add", "pattern", "logic", "logic"],
+    difficultyZh: "4岁：数5到7，答案多在4到7，找不同、配对和比较多少。",
+    difficultyEn: "Age 4: count 5-7, answers mostly 4-7, odd one, pairs, more/less.",
   },
   5: {
     rounds: 7,
+    minCount: 8,
     maxCount: 12,
+    minMathAnswer: 7,
     maxSum: 12,
+    addPartMin: 3,
     addPartMax: 6,
     patternLevel: 3,
+    compareMin: 5,
     compareMax: 8,
-    logicTypes: ["match", "odd", "pair", "compare", "sequence", "size-sort"],
+    logicTypes: ["compare", "sequence", "size-sort"],
     mathTypes: ["add", "subtract"],
     sequenceSteps: [1, 2],
-    mixedTypes: ["count", "add", "subtract", "subtract", "pattern", "logic", "logic"],
-    difficultyZh: "5岁：数到12，12以内加减法，数字规律和复杂图形规律。",
-    difficultyEn: "Age 5: count to 12, add/subtract to 12, number and shape patterns.",
+    mixedTypes: ["count", "subtract", "subtract", "add", "pattern", "logic", "logic"],
+    difficultyZh: "5岁：数8到12，答案多在7到12，开始做减法、数字规律和大小排序。",
+    difficultyEn: "Age 5: count 8-12, answers mostly 7-12, subtraction, number patterns, size order.",
   },
   6: {
     rounds: 8,
+    minCount: 13,
     maxCount: 16,
+    minMathAnswer: 10,
     maxSum: 16,
+    addPartMin: 4,
     addPartMax: 9,
     patternLevel: 5,
+    compareMin: 7,
     compareMax: 10,
-    logicTypes: ["odd", "pair", "compare", "sequence", "mirror", "size-sort"],
+    logicTypes: ["sequence", "mirror", "size-sort", "compare"],
     mathTypes: ["add", "subtract", "missing-addend", "double"],
     sequenceSteps: [2, 3, 4],
-    mixedTypes: ["count", "add", "subtract", "missing-addend", "double", "pattern", "logic", "logic"],
-    difficultyZh: "6岁：数到16，16以内加减法，缺数加法和2/3/4跳数规律。",
-    difficultyEn: "Age 6: count to 16, add/subtract to 16, missing addends, skip-counting.",
+    mixedTypes: ["count", "subtract", "missing-addend", "double", "pattern", "logic", "logic", "logic"],
+    difficultyZh: "6岁：数13到16，答案多在10到16，缺数加法、双倍数和2/3/4跳数规律。",
+    difficultyEn: "Age 6: count 13-16, answers mostly 10-16, missing addends, doubles, 2/3/4 skip-counting.",
   },
   7: {
     rounds: 9,
+    minCount: 17,
     maxCount: 20,
+    minMathAnswer: 14,
     maxSum: 20,
+    addPartMin: 5,
     addPartMax: 12,
     patternLevel: 6,
+    compareMin: 10,
     compareMax: 14,
-    logicTypes: ["odd", "pair", "compare", "sequence", "mirror", "size-sort"],
+    logicTypes: ["mirror", "size-sort", "sequence", "compare"],
     mathTypes: ["add", "subtract", "missing-addend", "double"],
     sequenceSteps: [2, 3, 4, 5],
-    mixedTypes: ["count", "add", "subtract", "missing-addend", "double", "pattern", "logic", "logic", "logic"],
-    difficultyZh: "7岁：数到20，20以内加减法、双倍数、缺数加法、镜像规律和大小排序。",
-    difficultyEn: "Age 7: count to 20, math to 20, doubles, missing addends, mirror and size sorting.",
+    mixedTypes: ["count", "subtract", "missing-addend", "double", "double", "pattern", "logic", "logic", "logic"],
+    difficultyZh: "7岁：数17到20，答案多在14到20，双倍数、缺数加法、镜像规律和大小排序。",
+    difficultyEn: "Age 7: count 17-20, answers mostly 14-20, doubles, missing addends, mirror and size sorting.",
   },
 };
 
@@ -208,6 +227,10 @@ const state = {
   particles: [],
   time: 0,
 };
+
+function isArithmeticChallenge(challenge = state.challenge) {
+  return Boolean(challenge && ["add", "subtract", "missing-addend", "double"].includes(challenge.type));
+}
 
 let lastFrame = 0;
 let preferredSpeechVoice = null;
@@ -330,7 +353,7 @@ function numberChoices(answer, min = 1, max = 8) {
 
 function makeCountChallenge() {
   const config = ageConfig();
-  const count = randomInt(1, config.maxCount);
+  const count = randomInt(config.minCount || 1, config.maxCount);
   const item = sample(itemKinds);
   const promptAudioKey = `count-${item.id}-${count}`;
   return {
@@ -349,9 +372,17 @@ function makeCountChallenge() {
 
 function makeAddChallenge() {
   const config = ageConfig();
-  const left = randomInt(1, Math.min(config.addPartMax, config.maxSum - 1));
-  const right = randomInt(1, Math.min(config.addPartMax, config.maxSum - left));
-  const total = left + right;
+  const minPart = config.addPartMin || 1;
+  const minAnswer = config.minMathAnswer || 2;
+  let left = minPart;
+  let right = minPart;
+  let total = left + right;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    left = randomInt(minPart, Math.min(config.addPartMax, config.maxSum - minPart));
+    right = randomInt(minPart, Math.min(config.addPartMax, config.maxSum - left));
+    total = left + right;
+    if (total >= minAnswer) break;
+  }
   const item = sample(itemKinds);
   const promptAudioKey = `add-${item.id}-${left}-${right}`;
   return {
@@ -370,9 +401,17 @@ function makeAddChallenge() {
 
 function makeSubtractChallenge() {
   const config = ageConfig();
-  const total = randomInt(3, config.maxSum);
-  const remove = randomInt(1, Math.min(total - 1, config.addPartMax));
-  const answer = total - remove;
+  const minPart = config.addPartMin || 1;
+  const minAnswer = config.minMathAnswer || 1;
+  let total = Math.max(3, minAnswer + minPart);
+  let remove = minPart;
+  let answer = total - remove;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    total = randomInt(Math.max(3, minAnswer + 1), config.maxSum);
+    remove = randomInt(minPart, Math.min(total - minAnswer, config.addPartMax));
+    answer = total - remove;
+    if (answer >= minAnswer && remove >= minPart) break;
+  }
   const item = sample(itemKinds);
   return {
     type: "subtract",
@@ -390,9 +429,17 @@ function makeSubtractChallenge() {
 
 function makeMissingAddendChallenge() {
   const config = ageConfig();
-  const left = randomInt(1, Math.min(config.addPartMax, config.maxSum - 2));
-  const missing = randomInt(1, Math.min(config.addPartMax, config.maxSum - left));
-  const total = left + missing;
+  const minPart = config.addPartMin || 1;
+  const minAnswer = config.minMathAnswer || 2;
+  let left = minPart;
+  let missing = minPart;
+  let total = left + missing;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    left = randomInt(minPart, Math.min(config.addPartMax, config.maxSum - minPart));
+    missing = randomInt(minPart, Math.min(config.addPartMax, config.maxSum - left));
+    total = left + missing;
+    if (total >= minAnswer && missing >= minPart) break;
+  }
   const item = sample(itemKinds);
   return {
     type: "missing-addend",
@@ -410,7 +457,13 @@ function makeMissingAddendChallenge() {
 
 function makeDoubleChallenge() {
   const config = ageConfig();
-  const left = randomInt(2, Math.min(config.addPartMax, Math.floor(config.maxSum / 2)));
+  const minPart = Math.max(2, config.addPartMin || 2);
+  const minAnswer = config.minMathAnswer || 4;
+  let left = minPart;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    left = randomInt(minPart, Math.min(config.addPartMax, Math.floor(config.maxSum / 2)));
+    if (left * 2 >= minAnswer) break;
+  }
   const total = left * 2;
   const item = sample(itemKinds);
   return {
@@ -525,10 +578,11 @@ function makeLogicPairChallenge() {
 
 function makeCompareChallenge() {
   const config = ageConfig();
+  const min = config.compareMin || 1;
   const max = config.compareMax || Math.min(config.maxCount, 9);
   const item = sample(itemKinds);
-  const left = randomInt(1, max);
-  const right = randomInt(1, max);
+  const left = randomInt(min, max);
+  const right = randomInt(min, max);
   const answerKey = left === right ? "same" : left > right ? "left" : "right";
   return {
     type: "compare",
@@ -551,8 +605,9 @@ function makeCompareChallenge() {
 function makeSequenceChallenge() {
   const config = ageConfig();
   const step = sample(config.sequenceSteps || [1]);
-  const startMax = Math.max(1, config.maxCount - step * 4);
-  const start = randomInt(1, startMax);
+  const startMin = Math.max(1, (config.minCount || 1) - step * 2);
+  const startMax = Math.max(startMin, config.maxCount - step * 4);
+  const start = randomInt(startMin, startMax);
   const slots = [start, start + step, start + step * 2, start + step * 3, null];
   const answer = start + step * 4;
   return {
@@ -743,15 +798,18 @@ function selectChoice(key) {
   if (state.adventure !== "question" || state.feedback === "correct") return;
   state.lastSelectedKey = key;
   if (key === state.challenge.answerKey) {
+    const revealDuration = isArithmeticChallenge() ? 2300 : 1350;
     state.feedback = "correct";
-    state.feedbackMessage = bilingualFeedback("太棒了，答对了！", "Yes, that's correct!");
-    state.feedbackTimer = 1300;
+    state.feedbackMessage = isArithmeticChallenge()
+      ? bilingualFeedback("答对啦，看一看答案怎么来的！", "Correct! Watch how the answer is made!")
+      : bilingualFeedback("太棒了，答对了！", "Yes, that's correct!");
+    state.feedbackTimer = revealDuration;
     state.stars += 1;
     state.levelProgress += 1;
     if (state.levelProgress >= levelGoal()) {
       completeLevel();
     } else {
-      state.autoNextTimer = 1350;
+      state.autoNextTimer = revealDuration;
       state.mascotMessage = sample([
         localize("太棒啦！", "Great job!"),
         localize("你真会观察！", "Great observing!"),
@@ -1556,6 +1614,7 @@ function drawChallenge() {
   if (state.challenge.type === "sequence") drawSequenceChallenge();
   if (state.challenge.type === "mirror") drawMirrorChallenge();
   if (state.challenge.type === "size-sort") drawSizeSortChallenge();
+  if (state.feedback === "correct" && isArithmeticChallenge()) drawArithmeticReveal();
 }
 
 function drawFormulaPanel(text, y = 398, width = 432) {
@@ -1610,6 +1669,7 @@ function drawAddChallenge() {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("+", 480, 286);
+  if (state.feedback === "correct") drawInlineMergeReveal(left + right, item, 480, mobile ? 356 : 352, isRevealProgress());
   drawFormulaPanel(`${left} + ${right} = ?`);
 }
 
@@ -1627,6 +1687,7 @@ function drawSubtractChallenge() {
     drawItem(item, position.x, position.y, displaySize);
     if (index < remove) drawTakeAwayMark(position.x, position.y, displaySize);
   });
+  if (state.feedback === "correct") drawInlineMergeReveal(total - remove, item, 480, mobile ? 356 : 352, isRevealProgress(), localize("剩下", "Left"));
   drawFormulaPanel(`${total} - ${remove} = ?`);
 }
 
@@ -1650,6 +1711,9 @@ function drawMissingAddendChallenge() {
   ctx.textBaseline = "middle";
   ctx.fillText(localize("总数", "Total"), mobile ? 625 : 633, mobile ? 230 : 232);
   drawNumberCard(total, mobile ? 625 : 633, mobile ? 282 : 282, mobile ? 78 : 68);
+  if (state.feedback === "correct") {
+    drawInlineMissingReveal(Number(state.challenge.answerKey), item, mobile ? 625 : 633, mobile ? 270 : 270, isRevealProgress());
+  }
   drawFormulaPanel(`${left} + ? = ${total}`);
 }
 
@@ -1667,7 +1731,139 @@ function drawDoubleChallenge() {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("+", 480, 286);
+  if (state.feedback === "correct") drawInlineMergeReveal(left + left, item, 480, mobile ? 356 : 352, isRevealProgress(), localize("双倍", "Double"));
   drawFormulaPanel(`${left} + ${left} = ?`);
+}
+
+function isRevealProgress() {
+  const total = Math.max(1, state.feedbackTimer || state.autoNextTimer || 2300);
+  return 1 - Math.max(0, state.autoNextTimer) / total;
+}
+
+function drawInlineMergeReveal(count, item, centerX, centerY, progress, labelText = localize("合起来", "Together")) {
+  const eased = Math.min(1, Math.max(0, progress));
+  ctx.save();
+  ctx.globalAlpha = 0.45 + eased * 0.55;
+  ctx.fillStyle = "rgba(255, 253, 244, 0.9)";
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.14)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(centerX - 150, centerY - 32, 300, 92, 24);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = palette.grassDark;
+  ctx.font = "900 20px ui-rounded, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(labelText, centerX, centerY - 8);
+  drawRevealGroup(centerX, centerY + 22, count, item, count > 8 ? 22 : 26, 0.78 + eased * 0.22);
+}
+
+function drawInlineMissingReveal(count, item, x, y, progress) {
+  const eased = Math.min(1, Math.max(0, progress));
+  const revealX = x - 156 + (1 - eased) * 24;
+  const revealY = y + 34;
+  ctx.save();
+  ctx.globalAlpha = 0.28 + eased * 0.72;
+  ctx.strokeStyle = "rgba(93, 169, 233, 0.7)";
+  ctx.lineWidth = 4;
+  ctx.setLineDash([8, 10]);
+  ctx.beginPath();
+  ctx.moveTo(revealX + 66, revealY - 18);
+  ctx.lineTo(x - 34, y + 4);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  drawRevealGroup(revealX, revealY, count, item, 24, 0.3 + eased * 0.7);
+  ctx.fillStyle = palette.blue;
+  ctx.font = "900 18px ui-rounded, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(localize(`补上 ${count}`, `Add ${count}`), revealX, revealY + 34);
+}
+
+function drawArithmeticReveal() {
+  const progress = 1 - Math.max(0, state.autoNextTimer) / Math.max(1, state.feedbackTimer || state.autoNextTimer || 2300);
+  const eased = Math.min(1, Math.max(0, progress));
+  const challenge = state.challenge;
+  const panelY = 356;
+  const panelH = 148;
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 253, 244, 0.94)";
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.12)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(70, panelY, 820, panelH, 28);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = palette.ink;
+  ctx.font = "900 24px ui-rounded, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(localize("答案是这样来的", "How the answer is made"), 480, panelY + 24);
+
+  if (challenge.type === "add" || challenge.type === "double") {
+    const leftCount = challenge.scene.left;
+    const rightCount = challenge.scene.right;
+    const item = challenge.scene.item;
+    drawRevealGroup(228 - eased * 32, 438, leftCount, item, 30);
+    drawRevealGroup(536 + (1 - eased) * 32, 438, rightCount, item, 30);
+    drawRevealSymbol("+", 480, 436);
+    drawRevealSymbol("=", 668, 436);
+    drawRevealResult(770, 436, leftCount + rightCount, item, eased);
+  }
+
+  if (challenge.type === "missing-addend") {
+    const leftCount = challenge.scene.left;
+    const rightCount = Number(challenge.answerKey);
+    const item = challenge.scene.item;
+    drawRevealGroup(228, 438, leftCount, item, 30);
+    drawRevealSymbol("+", 480, 436);
+    drawRevealGroup(536 + (1 - eased) * 44, 438, rightCount, item, 30, eased);
+    drawRevealSymbol("=", 668, 436);
+    drawRevealResult(770, 436, leftCount + rightCount, item, eased);
+  }
+
+  if (challenge.type === "subtract") {
+    const total = challenge.scene.total;
+    const remove = challenge.scene.remove;
+    const item = challenge.scene.item;
+    drawRevealGroup(228, 438, total, item, 26);
+    drawRevealSymbol("-", 480, 436);
+    drawRevealGroup(536, 438, remove, item, 26, 1, true);
+    drawRevealSymbol("=", 668, 436);
+    drawRevealResult(770, 436, total - remove, item, eased);
+  }
+  ctx.restore();
+}
+
+function drawRevealSymbol(text, x, y) {
+  ctx.fillStyle = palette.ink;
+  ctx.font = "950 40px ui-rounded, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x, y);
+}
+
+function drawRevealGroup(x, y, count, item, size, alpha = 1, crossed = false) {
+  const positions = layoutPositions(count, x - 78, y - 32, 156, 70, count > 6 ? 4 : 3);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  positions.forEach((position) => {
+    drawItem(item, position.x, position.y, size);
+    if (crossed) drawTakeAwayMark(position.x, position.y, size);
+  });
+  ctx.restore();
+}
+
+function drawRevealResult(x, y, count, item, progress) {
+  drawRevealGroup(x, y, count, item, count > 8 ? 22 : 26, 0.72 + progress * 0.28);
+  ctx.fillStyle = palette.grassDark;
+  ctx.font = "900 22px ui-rounded, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(localize(`一共 ${count}`, `${count} total`), x, y + 48);
 }
 
 function drawTakeAwayMark(x, y, size) {
