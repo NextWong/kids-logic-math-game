@@ -141,6 +141,14 @@ h1 {
   flex-wrap: wrap;
 }
 
+.difficulty-label {
+  margin: -4px 0 10px;
+  color: var(--muted);
+  font-size: 0.96rem;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
 .stage {
   position: relative;
   width: 100%;
@@ -512,6 +520,15 @@ button:focus-visible {
     min-height: 30px;
     padding: 0 8px;
     font-size: 0.78rem;
+  }
+
+  .difficulty-label {
+    overflow: hidden;
+    margin: -1px 0 5px;
+    font-size: 0.72rem;
+    line-height: 1.08;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .stage {

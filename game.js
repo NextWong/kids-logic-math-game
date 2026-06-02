@@ -4,6 +4,7 @@ const ctx = canvas.getContext("2d");
 const ui = {
   ageButtons: document.querySelectorAll(".age-button"),
   choices: document.getElementById("choices"),
+  difficulty: document.getElementById("difficultyLabel"),
   feedback: document.getElementById("feedbackText"),
   languageButtons: document.querySelectorAll(".language-button"),
   modeLabel: document.getElementById("modeLabel"),
@@ -24,14 +25,14 @@ const PROMPT_AUDIO_BASE = "./audio/prompts";
 const MODE_LABELS = {
   mixed: { zh: "混合练习", en: "Mixed" },
   count: { zh: "数数练习", en: "Counting" },
-  add: { zh: "加法练习", en: "Adding" },
+  add: { zh: "算数练习", en: "Math" },
   pattern: { zh: "规律练习", en: "Patterns" },
   logic: { zh: "逻辑练习", en: "Logic" },
 };
 const MODE_BUTTON_LABELS = {
   mixed: { zh: "混合", en: "Mix" },
   count: { zh: "数数", en: "Count" },
-  add: { zh: "加法", en: "Add" },
+  add: { zh: "算数", en: "Math" },
   pattern: { zh: "规律", en: "Pattern" },
   logic: { zh: "逻辑", en: "Logic" },
 };
@@ -44,10 +45,56 @@ const UI_TEXT = {
   levelClear: { zh: "闯关成功！", en: "Level clear!" },
 };
 const AGE_CONFIGS = {
-  3: { rounds: 6, maxCount: 5, maxSum: 5, patternLevel: 1, logicLevel: 1 },
-  4: { rounds: 6, maxCount: 8, maxSum: 8, patternLevel: 2, logicLevel: 2 },
-  5: { rounds: 7, maxCount: 10, maxSum: 10, patternLevel: 3, logicLevel: 3 },
-  6: { rounds: 8, maxCount: 12, maxSum: 12, patternLevel: 4, logicLevel: 4 },
+  3: {
+    rounds: 6,
+    maxCount: 5,
+    maxSum: 5,
+    addPartMax: 3,
+    patternLevel: 1,
+    logicTypes: ["match", "odd"],
+    mathTypes: ["add"],
+    mixedTypes: ["count", "count", "add", "pattern", "logic"],
+    difficultyZh: "3岁：数到5，5以内加法，AB规律，找一样/找不同。",
+    difficultyEn: "Age 3: count to 5, sums to 5, AB patterns, same/different.",
+  },
+  4: {
+    rounds: 6,
+    maxCount: 8,
+    maxSum: 8,
+    addPartMax: 4,
+    patternLevel: 2,
+    logicTypes: ["match", "odd", "pair", "compare"],
+    mathTypes: ["add"],
+    mixedTypes: ["count", "add", "pattern", "logic", "logic"],
+    difficultyZh: "4岁：数到8，8以内加法，配对补空格，比较多少。",
+    difficultyEn: "Age 4: count to 8, sums to 8, pairs, more/less.",
+  },
+  5: {
+    rounds: 7,
+    maxCount: 10,
+    maxSum: 10,
+    addPartMax: 6,
+    patternLevel: 3,
+    logicTypes: ["match", "odd", "pair", "compare", "sequence"],
+    mathTypes: ["add", "subtract"],
+    sequenceSteps: [1, 2],
+    mixedTypes: ["count", "add", "subtract", "pattern", "logic", "logic"],
+    difficultyZh: "5岁：数到10，10以内加减法，数字规律，复杂图形规律。",
+    difficultyEn: "Age 5: count to 10, add/subtract to 10, number patterns.",
+  },
+  6: {
+    rounds: 8,
+    maxCount: 12,
+    maxSum: 12,
+    addPartMax: 8,
+    patternLevel: 4,
+    logicTypes: ["match", "odd", "pair", "compare", "sequence"],
+    mathTypes: ["add", "subtract", "missing-addend"],
+    sequenceSteps: [1, 2, 3],
+    mixedTypes: ["count", "add", "subtract", "missing-addend", "pattern", "logic", "logic"],
+    difficultyZh: "6岁：数到12，12以内加减法，缺数加法，跳数规律。",
+    difficultyEn: "Age 6: count to 12, add/subtract to 12, missing addends, skip patterns.",
+  },
 };
 
 const palette = {
@@ -105,6 +152,14 @@ const activityKinds = [
   { id: "climb", zh: "攀岩", en: "climbing", promptEn: "climb", lineEn: "are climbing" },
   { id: "ball", zh: "玩球", en: "playing ball", promptEn: "play ball", lineEn: "are playing ball" },
 ];
+const animalActionKinds = [
+  { id: "jump", zh: "跳起来啦", en: "jumps" },
+  { id: "wave", zh: "挥挥手", en: "waves" },
+  { id: "dance", zh: "跳舞啦", en: "dances" },
+  { id: "spin", zh: "转圈圈", en: "spins" },
+  { id: "peek", zh: "躲猫猫", en: "plays peekaboo" },
+  { id: "heart", zh: "送爱心", en: "sends hearts" },
+];
 
 const state = {
   age: 3,
@@ -128,6 +183,8 @@ const state = {
   garden: [],
   unlockedAnimals: 1,
   animalBounce: 0,
+  activeAnimalAction: null,
+  lastAnimalActionId: "",
   mascotMessage: "摸摸小动物，一起闯关！",
   mascotMessageTimer: 4000,
   particles: [],
@@ -170,6 +227,11 @@ function ageConfig() {
   return AGE_CONFIGS[state.age] || AGE_CONFIGS[3];
 }
 
+function difficultyLabel() {
+  const config = ageConfig();
+  return localize(config.difficultyZh, config.difficultyEn);
+}
+
 function levelGoal() {
   return ageConfig().rounds;
 }
@@ -204,6 +266,13 @@ function choiceLabel(choice) {
 
 function bilingualFeedback(zh, en) {
   return `${zh} ${en}`;
+}
+
+function makeMathChallenge() {
+  const type = sample(ageConfig().mathTypes);
+  if (type === "subtract") return makeSubtractChallenge();
+  if (type === "missing-addend") return makeMissingAddendChallenge();
+  return makeAddChallenge();
 }
 
 function randomInt(min, max) {
@@ -261,8 +330,8 @@ function makeCountChallenge() {
 
 function makeAddChallenge() {
   const config = ageConfig();
-  const left = randomInt(1, Math.min(6, config.maxSum - 1));
-  const right = randomInt(1, Math.min(6, config.maxSum - left));
+  const left = randomInt(1, Math.min(config.addPartMax, config.maxSum - 1));
+  const right = randomInt(1, Math.min(config.addPartMax, config.maxSum - left));
   const total = left + right;
   const item = sample(itemKinds);
   const promptAudioKey = `add-${item.id}-${left}-${right}`;
@@ -277,6 +346,46 @@ function makeAddChallenge() {
     answerTextEn: String(total),
     choices: numberChoices(total, 1, Math.max(config.maxSum, 6)),
     scene: { left, right, item },
+  };
+}
+
+function makeSubtractChallenge() {
+  const config = ageConfig();
+  const total = randomInt(3, config.maxSum);
+  const remove = randomInt(1, Math.min(total - 1, config.addPartMax));
+  const answer = total - remove;
+  const item = sample(itemKinds);
+  return {
+    type: "subtract",
+    promptZh: `${total} 减 ${remove}，还剩几颗${item.labelZh}？`,
+    promptEn: `${total} take away ${remove}. How many ${item.labelEn} are left?`,
+    promptAudioKey: "",
+    promptAudio: "",
+    answerKey: String(answer),
+    answerTextZh: String(answer),
+    answerTextEn: String(answer),
+    choices: numberChoices(answer, 1, Math.max(config.maxSum, 8)),
+    scene: { total, remove, item },
+  };
+}
+
+function makeMissingAddendChallenge() {
+  const config = ageConfig();
+  const left = randomInt(1, Math.min(config.addPartMax, config.maxSum - 2));
+  const missing = randomInt(1, Math.min(config.addPartMax, config.maxSum - left));
+  const total = left + missing;
+  const item = sample(itemKinds);
+  return {
+    type: "missing-addend",
+    promptZh: `${left} 加几，等于 ${total}？`,
+    promptEn: `${left} plus what makes ${total}?`,
+    promptAudioKey: "",
+    promptAudio: "",
+    answerKey: String(missing),
+    answerTextZh: String(missing),
+    answerTextEn: String(missing),
+    choices: numberChoices(missing, 1, Math.max(config.addPartMax, 8)),
+    scene: { left, missing, total, item },
   };
 }
 
@@ -400,7 +509,7 @@ function makeCompareChallenge() {
 
 function makeSequenceChallenge() {
   const config = ageConfig();
-  const step = state.age >= 6 ? sample([1, 2, 3]) : sample([1, 2]);
+  const step = sample(config.sequenceSteps || [1]);
   const startMax = Math.max(1, config.maxCount - step * 4);
   const start = randomInt(1, startMax);
   const slots = [start, start + step, start + step * 2, start + step * 3, null];
@@ -420,18 +529,31 @@ function makeSequenceChallenge() {
 }
 
 function makeLogicChallenge() {
-  const makers = [makeLogicMatchChallenge, makeLogicOddChallenge, makeLogicPairChallenge];
-  if (ageConfig().logicLevel >= 2) makers.push(makeCompareChallenge);
-  if (ageConfig().logicLevel >= 3) makers.push(makeSequenceChallenge);
+  const logicMakers = {
+    match: makeLogicMatchChallenge,
+    odd: makeLogicOddChallenge,
+    pair: makeLogicPairChallenge,
+    compare: makeCompareChallenge,
+    sequence: makeSequenceChallenge,
+  };
+  const makers = ageConfig().logicTypes.map((type) => logicMakers[type]).filter(Boolean);
   return sample(makers)();
 }
 
 function makeChallenge() {
   if (state.mode === "count") return makeCountChallenge();
-  if (state.mode === "add") return makeAddChallenge();
+  if (state.mode === "add") return makeMathChallenge();
   if (state.mode === "pattern") return makePatternChallenge();
   if (state.mode === "logic") return makeLogicChallenge();
-  const makers = [makeCountChallenge, makeAddChallenge, makePatternChallenge, makeLogicChallenge];
+  const mixedMakers = {
+    count: makeCountChallenge,
+    add: makeAddChallenge,
+    subtract: makeSubtractChallenge,
+    "missing-addend": makeMissingAddendChallenge,
+    pattern: makePatternChallenge,
+    logic: makeLogicChallenge,
+  };
+  const makers = ageConfig().mixedTypes.map((type) => mixedMakers[type]).filter(Boolean);
   return sample(makers)();
 }
 
@@ -495,6 +617,7 @@ function renderChoices() {
 function syncDom() {
   document.documentElement.lang = state.language === "en" ? "en" : "zh-CN";
   ui.title.textContent = uiText("title");
+  ui.difficulty.textContent = difficultyLabel();
   ui.prompt.textContent = state.adventure === "reward" ? rewardPrompt() : challengePrompt();
   ui.feedback.textContent = state.feedbackMessage;
   ui.round.textContent =
@@ -632,6 +755,40 @@ function addTapSparkles(x, y) {
       color: sample([palette.pink, palette.yellow, palette.teal, palette.orange]),
     });
   }
+}
+
+function startAnimalAction(friend) {
+  const choices = animalActionKinds.filter((action) => action.id !== state.lastAnimalActionId);
+  const action = sample(choices.length ? choices : animalActionKinds);
+  state.lastAnimalActionId = action.id;
+  state.activeAnimalAction = {
+    animalId: friend.id,
+    type: action.id,
+    labelZh: action.zh,
+    labelEn: action.en,
+    timer: 1500,
+    duration: 1500,
+    seed: Math.random() * Math.PI * 2,
+  };
+  if (action.id === "heart") {
+    for (let index = 0; index < 8; index += 1) {
+      state.particles.push({
+        x: friend.x + randomInt(-42, 42),
+        y: friend.y - randomInt(40, 120),
+        vx: randomInt(-45, 45),
+        vy: randomInt(-120, -45),
+        life: 1,
+        shape: "heart",
+        color: sample([palette.pink, palette.red, palette.yellow]),
+      });
+    }
+  }
+  return action;
+}
+
+function animalActionFor(friend) {
+  if (!state.activeAnimalAction || state.activeAnimalAction.animalId !== friend.id) return null;
+  return state.activeAnimalAction;
 }
 
 function getAudioContext() {
@@ -804,7 +961,8 @@ function handleCanvasTap(event) {
 
   const friend = hitAnimalFriend(point.x, point.y);
   if (friend) {
-    state.mascotMessage = localize(`${animalName(friend)}跳起来啦！`, `${animalName(friend)} jumps!`);
+    const action = startAnimalAction(friend);
+    state.mascotMessage = localize(`${animalName(friend)}${action.zh}！`, `${animalName(friend)} ${action.en}!`);
     state.mascotMessageTimer = 1500;
     state.animalBounce = 1;
     playSound("animal");
@@ -848,6 +1006,10 @@ function update(dt) {
   state.time += dt;
   state.animalBounce = Math.max(0, state.animalBounce - dt * 2.4);
   state.mascotMessageTimer = Math.max(0, state.mascotMessageTimer - dt * 1000);
+  if (state.activeAnimalAction) {
+    state.activeAnimalAction.timer -= dt * 1000;
+    if (state.activeAnimalAction.timer <= 0) state.activeAnimalAction = null;
+  }
   if (state.adventure === "reward" && state.rewardTimer > 0) {
     state.rewardTimer -= dt * 1000;
     if (state.rewardTimer <= 0) {
@@ -1101,9 +1263,34 @@ function drawAnimalFriends() {
 
 function drawAnimalFriend(friend, index) {
   const size = friend.r;
-  const bob = Math.sin(state.time * 3 + index * 1.7) * 2 - state.animalBounce * (16 - index * 1.5);
-  const x = friend.x;
-  const y = friend.y + bob;
+  const action = animalActionFor(friend);
+  const progress = action ? 1 - Math.max(0, action.timer) / action.duration : 0;
+  const pulse = action ? Math.sin(progress * Math.PI) : 0;
+  let bob = Math.sin(state.time * 3 + index * 1.7) * 2 - state.animalBounce * (16 - index * 1.5);
+  let offsetX = 0;
+  let offsetY = 0;
+  let rotation = 0;
+  let scaleX = 1;
+  let scaleY = 1;
+  if (action?.type === "jump") offsetY -= pulse * size * 0.78;
+  if (action?.type === "dance") {
+    offsetX += Math.sin(state.time * 15 + action.seed) * size * 0.14;
+    rotation = Math.sin(state.time * 12 + action.seed) * 0.18;
+  }
+  if (action?.type === "spin") {
+    rotation = progress * Math.PI * 2;
+    scaleX = 0.9 + pulse * 0.12;
+  }
+  if (action?.type === "wave") rotation = Math.sin(state.time * 12 + action.seed) * 0.09;
+  if (action?.type === "peek") {
+    offsetY += pulse * size * 0.32;
+    scaleY = 1 - pulse * 0.18;
+  }
+  if (action?.type === "heart") offsetY -= pulse * size * 0.24;
+  const baseX = friend.x + offsetX;
+  const baseY = friend.y + bob + offsetY;
+  const x = 0;
+  const y = 0;
 
   ctx.save();
   ctx.lineWidth = 4;
@@ -1111,8 +1298,11 @@ function drawAnimalFriend(friend, index) {
 
   ctx.fillStyle = "rgba(36, 49, 43, 0.12)";
   ctx.beginPath();
-  ctx.ellipse(x, friend.y + size * 0.52, size * 0.72, size * 0.18, 0, 0, Math.PI * 2);
+  ctx.ellipse(baseX, friend.y + size * 0.52, size * 0.72, size * 0.18, 0, 0, Math.PI * 2);
   ctx.fill();
+  ctx.translate(baseX, baseY);
+  ctx.rotate(rotation);
+  ctx.scale(scaleX, scaleY);
 
   if (friend.id === "bunny") {
     ctx.fillStyle = friend.body;
@@ -1200,6 +1390,61 @@ function drawAnimalFriend(friend, index) {
   ctx.arc(x + size * 0.27, y + size * 0.13, size * 0.07, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+  if (action) drawAnimalActionEffect(action, baseX, baseY, size, progress);
+}
+
+function drawAnimalActionEffect(action, x, y, size, progress) {
+  const pulse = Math.sin(progress * Math.PI);
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  if (action.type === "wave") {
+    ctx.strokeStyle = "rgba(36, 49, 43, 0.34)";
+    ctx.lineWidth = 4;
+    for (let index = 0; index < 3; index += 1) {
+      ctx.beginPath();
+      ctx.arc(x + size * 0.5 + index * 12, y - size * 0.18, 10 + index * 7, -0.7, 0.65);
+      ctx.stroke();
+    }
+  }
+  if (action.type === "dance") {
+    ["♪", "♫"].forEach((note, index) => {
+      ctx.fillStyle = index ? palette.violet : palette.teal;
+      ctx.font = `900 ${24 + pulse * 10}px ui-rounded, system-ui, sans-serif`;
+      ctx.fillText(note, x - size * 0.68 + index * size * 1.35, y - size * (0.8 + index * 0.1));
+    });
+  }
+  if (action.type === "spin") {
+    ctx.strokeStyle = "rgba(140, 111, 247, 0.42)";
+    ctx.lineWidth = 5;
+    ctx.setLineDash([12, 12]);
+    ctx.beginPath();
+    ctx.arc(x, y, size * (0.72 + pulse * 0.22), progress * Math.PI * 2, progress * Math.PI * 2 + Math.PI * 1.45);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if (action.type === "peek") {
+    ctx.fillStyle = "rgba(47, 155, 92, 0.88)";
+    for (let index = 0; index < 5; index += 1) {
+      ctx.beginPath();
+      ctx.ellipse(x - size * 0.48 + index * size * 0.24, y + size * 0.42, size * 0.18, size * 0.34, -0.4 + index * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  if (action.type === "heart") {
+    for (let index = 0; index < 3; index += 1) {
+      ctx.fillStyle = [palette.pink, palette.red, palette.yellow][index];
+      ctx.beginPath();
+      drawHeartPath(x - size * 0.52 + index * size * 0.52, y - size * (0.86 + pulse * 0.35) - index * 9, size * 0.16);
+      ctx.fill();
+    }
+  }
+  if (action.type === "jump") {
+    drawStarShape(x - size * 0.55, y + size * 0.42, size * 0.18, size * 0.08, palette.yellow);
+    drawStarShape(x + size * 0.55, y + size * 0.38, size * 0.16, size * 0.07, palette.yellow);
+  }
+  ctx.restore();
 }
 
 function drawChallenge() {
@@ -1209,6 +1454,8 @@ function drawChallenge() {
   }
   if (state.challenge.type === "count") drawCountChallenge();
   if (state.challenge.type === "add") drawAddChallenge();
+  if (state.challenge.type === "subtract") drawSubtractChallenge();
+  if (state.challenge.type === "missing-addend") drawMissingAddendChallenge();
   if (state.challenge.type === "pattern") drawPatternChallenge();
   if (state.challenge.type === "logic-match") drawLogicMatchChallenge();
   if (state.challenge.type === "logic-odd") drawLogicOddChallenge();
@@ -1244,6 +1491,53 @@ function drawAddChallenge() {
   ctx.textBaseline = "middle";
   ctx.fillText("+", 480, 286);
   ctx.fillText("?", 480, 370);
+}
+
+function drawSubtractChallenge() {
+  const { total, remove, item } = state.challenge.scene;
+  const mobile = isPhoneLayout();
+  const positions = mobile ? layoutPositions(total, 130, 178, 700, 250) : layoutPositions(total, 225, 180, 510, 245);
+  const itemSize = total > 9 ? 38 : total > 6 ? 44 : 50;
+  drawQuestionBadge(localize("减一减", "Take away"), 480, 142);
+  positions.forEach((position, index) => {
+    drawItem(item, position.x, position.y, phoneScale(itemSize, total > 8 ? 1.08 : 1.22));
+    if (index < remove) drawTakeAwayMark(position.x, position.y, phoneScale(itemSize, 1.08));
+  });
+  ctx.fillStyle = palette.ink;
+  ctx.font = `900 ${mobile ? 66 : 54}px ui-rounded, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`${total} - ${remove} = ?`, 480, 390);
+}
+
+function drawMissingAddendChallenge() {
+  const { left, total, item } = state.challenge.scene;
+  const mobile = isPhoneLayout();
+  drawQuestionBadge(localize("缺哪个数", "Missing"), 480, 142);
+  const leftLayout = mobile ? layoutPositions(left, 116, 218, 248, 150) : layoutPositions(left, 158, 220, 216, 142);
+  leftLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(48, 1.34)));
+  ctx.fillStyle = palette.ink;
+  ctx.font = `900 ${mobile ? 64 : 54}px ui-rounded, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("+", 404, 302);
+  drawNumberCard(null, 498, 302, mobile ? 122 : 104);
+  ctx.fillText("=", 604, 302);
+  drawNumberCard(total, 712, 302, mobile ? 122 : 104);
+}
+
+function drawTakeAwayMark(x, y, size) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(232, 93, 117, 0.88)";
+  ctx.lineWidth = Math.max(5, size * 0.09);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x - size * 0.4, y - size * 0.4);
+  ctx.lineTo(x + size * 0.4, y + size * 0.4);
+  ctx.moveTo(x + size * 0.4, y - size * 0.4);
+  ctx.lineTo(x - size * 0.4, y + size * 0.4);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawPatternChallenge() {
@@ -1796,6 +2090,8 @@ function resetQuest() {
   state.garden = [];
   state.particles = [];
   state.unlockedAnimals = 1;
+  state.activeAnimalAction = null;
+  state.lastAnimalActionId = "";
   state.adventure = "question";
   state.rewardTimer = 0;
   state.rewardAnimal = null;
@@ -1878,11 +2174,19 @@ function renderGameToText() {
     level: state.level,
     levelProgress: state.levelProgress,
     levelGoal: levelGoal(),
+    difficulty: difficultyLabel(),
     round: state.round,
     stars: state.stars,
     feedback: state.feedback,
     feedbackMessage: state.feedbackMessage,
     unlockedAnimals: animalFriends.slice(0, state.unlockedAnimals).map((friend) => animalName(friend)),
+    animalAction: state.activeAnimalAction
+      ? {
+          animalId: state.activeAnimalAction.animalId,
+          type: state.activeAnimalAction.type,
+          label: localize(state.activeAnimalAction.labelZh, state.activeAnimalAction.labelEn),
+        }
+      : null,
     mascotMessage: state.mascotMessageTimer > 0 ? state.mascotMessage : "",
     reward:
       state.adventure === "reward"
@@ -1933,6 +2237,22 @@ function renderSceneText(challenge) {
     return {
       type: challenge.type,
       slots: challenge.scene.slots.map((slot) => (slot === null ? "?" : String(slot))),
+    };
+  }
+  if (challenge.type === "subtract") {
+    return {
+      type: challenge.type,
+      item: itemLabel(challenge.scene.item),
+      total: challenge.scene.total,
+      remove: challenge.scene.remove,
+    };
+  }
+  if (challenge.type === "missing-addend") {
+    return {
+      type: challenge.type,
+      item: itemLabel(challenge.scene.item),
+      left: challenge.scene.left,
+      total: challenge.scene.total,
     };
   }
   return {
