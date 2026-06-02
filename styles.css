@@ -464,8 +464,8 @@ button:focus-visible {
   }
 
   #gameCanvas {
-    aspect-ratio: auto;
-    height: clamp(350px, 54svh, 480px);
+    aspect-ratio: 48 / 31;
+    height: auto;
   }
 
   .prompt-row {
@@ -592,10 +592,6 @@ button:focus-visible {
 }
 
 @media (max-width: 720px) and (max-height: 740px) {
-  #gameCanvas {
-    height: clamp(300px, 47svh, 360px);
-  }
-
   .choice-button {
     min-height: 78px;
   }

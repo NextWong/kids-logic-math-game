@@ -100,6 +100,14 @@ let preferredSpeechVoice = null;
 let promptAudio = null;
 let promptAudioSrc = "";
 
+function isPhoneLayout() {
+  return window.matchMedia?.("(max-width: 720px)").matches ?? window.innerWidth <= 720;
+}
+
+function phoneScale(value, scale = 1.28) {
+  return isPhoneLayout() ? value * scale : value;
+}
+
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -595,12 +603,14 @@ function canvasPoint(event) {
 
 function friendSlots() {
   const count = state.unlockedAnimals;
-  const start = WIDTH / 2 - (count - 1) * 74;
+  const gap = isPhoneLayout() ? 176 : 148;
+  const radius = isPhoneLayout() ? 76 : 48;
+  const start = WIDTH / 2 - ((count - 1) * gap) / 2;
   return animalFriends.slice(0, count).map((friend, index) => ({
     ...friend,
-    x: start + index * 148,
+    x: start + index * gap,
     y: FLOOR_Y + 82 + (index % 2) * 8,
-    r: 48,
+    r: radius,
   }));
 }
 
@@ -970,20 +980,24 @@ function drawChallenge() {
 
 function drawCountChallenge() {
   const { count, item } = state.challenge.scene;
-  const positions = layoutPositions(count, 330, 188, 300, 205);
+  const mobile = isPhoneLayout();
+  const positions = mobile ? layoutPositions(count, 266, 164, 428, 248) : layoutPositions(count, 330, 188, 300, 205);
   drawQuestionBadge("数一数", 480, 142);
   positions.forEach((position, index) => {
-    drawItem(item, position.x, position.y, 58 + (index % 2) * 5);
+    drawItem(item, position.x, position.y, phoneScale(58 + (index % 2) * 5, 1.46));
   });
 }
 
 function drawAddChallenge() {
   const { left, right, item } = state.challenge.scene;
+  const mobile = isPhoneLayout();
   drawQuestionBadge("合起来", 480, 142);
-  layoutPositions(left, 170, 220, 210, 140).forEach((position) => drawItem(item, position.x, position.y, 48));
-  layoutPositions(right, 580, 220, 210, 140).forEach((position) => drawItem(item, position.x, position.y, 48));
+  const leftLayout = mobile ? layoutPositions(left, 100, 200, 300, 178) : layoutPositions(left, 170, 220, 210, 140);
+  const rightLayout = mobile ? layoutPositions(right, 560, 200, 300, 178) : layoutPositions(right, 580, 220, 210, 140);
+  leftLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(48, 1.55)));
+  rightLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(48, 1.55)));
   ctx.fillStyle = palette.ink;
-  ctx.font = "900 58px ui-rounded, system-ui, sans-serif";
+  ctx.font = `900 ${isPhoneLayout() ? 74 : 58}px ui-rounded, system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("+", 480, 286);
@@ -992,52 +1006,60 @@ function drawAddChallenge() {
 
 function drawPatternChallenge() {
   drawQuestionBadge("找规律", 480, 142);
-  const startX = 174;
-  const gap = 122;
+  const mobile = isPhoneLayout();
+  const startX = mobile ? 132 : 174;
+  const gap = mobile ? 140 : 122;
+  const cardSize = mobile ? 122 : 88;
+  const tokenSize = mobile ? 90 : 58;
   state.challenge.scene.slots.forEach((token, index) => {
     const x = startX + index * gap;
     const y = 292;
-    drawShapeCard(token, x, y, 88, 58);
+    drawShapeCard(token, x, y, cardSize, tokenSize);
   });
 }
 
 function drawLogicMatchChallenge() {
   const { target } = state.challenge.scene;
+  const mobile = isPhoneLayout();
   drawQuestionBadge("找一样", 480, 142);
-  drawShapeCard(target, 480, 304, 150, 96);
-  drawStarShape(374, 288, 20, 9, palette.yellow);
-  drawStarShape(586, 288, 20, 9, palette.yellow);
+  drawShapeCard(target, 480, 304, mobile ? 224 : 150, mobile ? 152 : 96);
+  drawStarShape(352, 286, mobile ? 32 : 20, mobile ? 15 : 9, palette.yellow);
+  drawStarShape(608, 286, mobile ? 32 : 20, mobile ? 15 : 9, palette.yellow);
 }
 
 function drawLogicOddChallenge() {
   drawQuestionBadge("找不同", 480, 142);
-  const startX = 270;
-  const gap = 140;
+  const mobile = isPhoneLayout();
+  const startX = mobile ? 234 : 270;
+  const gap = mobile ? 164 : 140;
+  const cardSize = mobile ? 150 : 104;
+  const tokenSize = mobile ? 106 : 66;
   state.challenge.scene.slots.forEach((token, index) => {
-    drawShapeCard(token, startX + index * gap, 302, 104, 66);
+    drawShapeCard(token, startX + index * gap, 302, cardSize, tokenSize);
   });
 }
 
 function drawLogicPairChallenge() {
   drawQuestionBadge("配一配", 480, 142);
+  const mobile = isPhoneLayout();
   const positions = [
-    { x: 410, y: 252 },
-    { x: 550, y: 252 },
-    { x: 410, y: 376 },
-    { x: 550, y: 376 },
+    { x: mobile ? 390 : 410, y: mobile ? 250 : 252 },
+    { x: mobile ? 570 : 550, y: mobile ? 250 : 252 },
+    { x: mobile ? 390 : 410, y: mobile ? 402 : 376 },
+    { x: mobile ? 570 : 550, y: mobile ? 402 : 376 },
   ];
   ctx.strokeStyle = "rgba(36, 49, 43, 0.12)";
   ctx.lineWidth = 5;
   ctx.setLineDash([10, 12]);
   ctx.beginPath();
-  ctx.moveTo(480, 202);
-  ctx.lineTo(480, 426);
-  ctx.moveTo(346, 314);
-  ctx.lineTo(614, 314);
+  ctx.moveTo(480, mobile ? 174 : 202);
+  ctx.lineTo(480, mobile ? 476 : 426);
+  ctx.moveTo(mobile ? 300 : 346, mobile ? 326 : 314);
+  ctx.lineTo(mobile ? 660 : 614, mobile ? 326 : 314);
   ctx.stroke();
   ctx.setLineDash([]);
   state.challenge.scene.slots.forEach((token, index) => {
-    drawShapeCard(token, positions[index].x, positions[index].y, 104, 66);
+    drawShapeCard(token, positions[index].x, positions[index].y, mobile ? 148 : 104, mobile ? 104 : 66);
   });
 }
 
