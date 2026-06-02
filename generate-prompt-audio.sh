@@ -51,5 +51,8 @@ for item in "${ITEMS[@]}"; do
 done
 
 make_audio "pattern-next-shape" "接下来应该是哪一个图形？"
+make_audio "logic-find-same" "找一个和中间一样的图形？"
+make_audio "logic-odd-one" "哪一个不一样？"
+make_audio "logic-complete-pair" "空格里应该放哪一个？"
 
 echo "Generated prompt audio with voice: $VOICE"

@@ -408,49 +408,155 @@ button:focus-visible {
 
 @media (max-width: 720px) {
   .game-app {
-    width: min(100% - 16px, 1080px);
-    padding-top: calc(10px + env(safe-area-inset-top));
+    width: min(100% - 8px, 1080px);
+    padding-top: calc(6px + env(safe-area-inset-top));
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
   }
 
   .top-bar {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    flex-direction: row;
+    gap: 8px;
+    min-height: 48px;
   }
 
-  h1 {
-    font-size: 1.35rem;
-  }
-
-  .stats {
-    justify-content: flex-start;
-  }
-
-  .prompt-row {
-    grid-template-columns: 58px minmax(0, 1fr) 58px;
+  .brand {
     gap: 8px;
   }
 
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-width: 2px;
+  }
+
+  h1 {
+    font-size: 1.08rem;
+  }
+
+  #roundLabel {
+    margin-top: 1px;
+    font-size: 0.78rem;
+  }
+
+  .stats {
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .stats span {
+    min-height: 30px;
+    padding: 0 9px;
+    font-size: 0.82rem;
+  }
+
+  .stage {
+    border-width: 3px;
+    box-shadow:
+      inset 0 0 0 2px rgba(255, 253, 244, 0.58),
+      0 4px 0 rgba(36, 49, 43, 0.08),
+      0 10px 24px rgba(36, 49, 43, 0.14);
+  }
+
+  .stage::before {
+    inset: 6px;
+    border-width: 1px;
+  }
+
+  #gameCanvas {
+    aspect-ratio: 4 / 3;
+  }
+
+  .prompt-row {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 6px;
+    min-height: 56px;
+    margin-top: 7px;
+  }
+
+  .prompt-copy {
+    padding: 7px 10px;
+    border-width: 2px;
+  }
+
   .small-action {
-    width: 58px;
-    min-height: 58px;
+    width: 44px;
+    min-height: 44px;
+    border-width: 2px;
+    font-size: 1rem;
   }
 
   #promptText {
-    font-size: 1.15rem;
+    font-size: 1rem;
+    line-height: 1.16;
+  }
+
+  #feedbackText {
+    min-height: 0.9rem;
+    margin-top: 2px;
+    font-size: 0.82rem;
   }
 
   .choices {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    min-height: 0;
   }
 
   .choice-button {
-    min-height: 94px;
-    font-size: 2.5rem;
+    min-height: 70px;
+    padding: 6px;
+    border-width: 3px;
+    font-size: 2rem;
+  }
+
+  .choice-button::before {
+    top: 6px;
+    left: 8px;
+    right: 8px;
+    height: 11px;
+  }
+
+  .choice-number {
+    width: 50px;
+    height: 50px;
+    border-width: 2px;
+  }
+
+  .choice-swatch {
+    width: 48px;
+    height: 48px;
+  }
+
+  .shape-triangle {
+    border-left-width: 27px;
+    border-right-width: 27px;
+    border-bottom-width: 50px;
+  }
+
+  .shape-face {
+    width: 24px;
+    height: 13px;
+    border-bottom-width: 3px;
+  }
+
+  .shape-face::before,
+  .shape-face::after {
+    top: -8px;
+    width: 5px;
+    height: 7px;
+  }
+
+  .mode-strip {
+    gap: 6px;
+    margin-top: 8px;
   }
 
   .mode-button {
-    min-width: 78px;
+    min-width: 58px;
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 0.9rem;
   }
 }
 
@@ -461,7 +567,7 @@ button:focus-visible {
   }
 
   .choice-button {
-    min-height: 124px;
+    min-height: 108px;
   }
 
   .mode-button {
@@ -471,16 +577,16 @@ button:focus-visible {
 
 @media (max-width: 720px) and (pointer: coarse) {
   .small-action {
-    width: 58px;
-    min-height: 58px;
+    width: 44px;
+    min-height: 44px;
   }
 
   .choice-button {
-    min-height: 102px;
+    min-height: 70px;
   }
 
   .mode-button {
-    min-height: 48px;
+    min-height: 38px;
   }
 }
 

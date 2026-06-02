@@ -15,13 +15,14 @@ const ui = {
 const WIDTH = 960;
 const HEIGHT = 620;
 const FLOOR_Y = 472;
-const AUDIO_VERSION = "6";
+const AUDIO_VERSION = "7";
 const PROMPT_AUDIO_BASE = "./audio/prompts";
 const MODE_LABELS = {
   mixed: "混合练习",
   count: "数数练习",
   add: "加法练习",
   pattern: "规律练习",
+  logic: "逻辑练习",
 };
 
 const palette = {
@@ -198,11 +199,69 @@ function makePatternChallenge() {
   };
 }
 
+function shapeChoices(answerToken) {
+  const distractors = shuffle(shapeTokens.filter((token) => token.id !== answerToken.id)).slice(0, 3);
+  return shuffle([answerToken, ...distractors]).map((token) => ({
+    type: "shape",
+    key: token.id,
+    token,
+  }));
+}
+
+function makeLogicMatchChallenge() {
+  const target = sample(shapeTokens);
+  return {
+    type: "logic-match",
+    prompt: "找一个和中间一样的图形？",
+    promptAudioKey: "logic-find-same",
+    promptAudio: promptAudioPath("logic-find-same"),
+    answerKey: target.id,
+    answerText: target.name,
+    choices: shapeChoices(target),
+    scene: { target },
+  };
+}
+
+function makeLogicOddChallenge() {
+  const base = sample(shapeTokens);
+  const odd = sample(shapeTokens.filter((token) => token.id !== base.id));
+  return {
+    type: "logic-odd",
+    prompt: "哪一个不一样？",
+    promptAudioKey: "logic-odd-one",
+    promptAudio: promptAudioPath("logic-odd-one"),
+    answerKey: odd.id,
+    answerText: odd.name,
+    choices: shapeChoices(odd),
+    scene: { slots: shuffle([base, base, base, odd]), odd },
+  };
+}
+
+function makeLogicPairChallenge() {
+  const pair = shuffle(shapeTokens).slice(0, 2);
+  const answer = pair[1];
+  return {
+    type: "logic-pair",
+    prompt: "空格里应该放哪一个？",
+    promptAudioKey: "logic-complete-pair",
+    promptAudio: promptAudioPath("logic-complete-pair"),
+    answerKey: answer.id,
+    answerText: answer.name,
+    choices: shapeChoices(answer),
+    scene: { slots: [pair[0], pair[1], pair[0], null], answer },
+  };
+}
+
+function makeLogicChallenge() {
+  return sample([makeLogicMatchChallenge, makeLogicOddChallenge, makeLogicPairChallenge])();
+}
+
 function makeChallenge() {
   if (state.mode === "count") return makeCountChallenge();
   if (state.mode === "add") return makeAddChallenge();
   if (state.mode === "pattern") return makePatternChallenge();
-  const makers = [makeCountChallenge, makeAddChallenge, makePatternChallenge];
+  if (state.mode === "logic") return makeLogicChallenge();
+  const makers = [makeCountChallenge, makeAddChallenge, makePatternChallenge, makeLogicChallenge];
   return sample(makers)();
 }
 
@@ -904,6 +963,9 @@ function drawChallenge() {
   if (state.challenge.type === "count") drawCountChallenge();
   if (state.challenge.type === "add") drawAddChallenge();
   if (state.challenge.type === "pattern") drawPatternChallenge();
+  if (state.challenge.type === "logic-match") drawLogicMatchChallenge();
+  if (state.challenge.type === "logic-odd") drawLogicOddChallenge();
+  if (state.challenge.type === "logic-pair") drawLogicPairChallenge();
 }
 
 function drawCountChallenge() {
@@ -935,23 +997,67 @@ function drawPatternChallenge() {
   state.challenge.scene.slots.forEach((token, index) => {
     const x = startX + index * gap;
     const y = 292;
-    ctx.fillStyle = "rgba(255, 253, 244, 0.86)";
-    ctx.strokeStyle = "rgba(36, 49, 43, 0.16)";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.roundRect(x - 44, y - 44, 88, 88, 18);
-    ctx.fill();
-    ctx.stroke();
-    if (token) {
-      drawShapeToken(token, x, y, 58);
-    } else {
-      ctx.fillStyle = palette.ink;
-      ctx.font = "900 54px ui-rounded, system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("?", x, y + 2);
-    }
+    drawShapeCard(token, x, y, 88, 58);
   });
+}
+
+function drawLogicMatchChallenge() {
+  const { target } = state.challenge.scene;
+  drawQuestionBadge("找一样", 480, 142);
+  drawShapeCard(target, 480, 304, 150, 96);
+  drawStarShape(374, 288, 20, 9, palette.yellow);
+  drawStarShape(586, 288, 20, 9, palette.yellow);
+}
+
+function drawLogicOddChallenge() {
+  drawQuestionBadge("找不同", 480, 142);
+  const startX = 270;
+  const gap = 140;
+  state.challenge.scene.slots.forEach((token, index) => {
+    drawShapeCard(token, startX + index * gap, 302, 104, 66);
+  });
+}
+
+function drawLogicPairChallenge() {
+  drawQuestionBadge("配一配", 480, 142);
+  const positions = [
+    { x: 410, y: 252 },
+    { x: 550, y: 252 },
+    { x: 410, y: 376 },
+    { x: 550, y: 376 },
+  ];
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.12)";
+  ctx.lineWidth = 5;
+  ctx.setLineDash([10, 12]);
+  ctx.beginPath();
+  ctx.moveTo(480, 202);
+  ctx.lineTo(480, 426);
+  ctx.moveTo(346, 314);
+  ctx.lineTo(614, 314);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  state.challenge.scene.slots.forEach((token, index) => {
+    drawShapeCard(token, positions[index].x, positions[index].y, 104, 66);
+  });
+}
+
+function drawShapeCard(token, x, y, cardSize, tokenSize) {
+  ctx.fillStyle = "rgba(255, 253, 244, 0.88)";
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.16)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(x - cardSize / 2, y - cardSize / 2, cardSize, cardSize, 18);
+  ctx.fill();
+  ctx.stroke();
+  if (token) {
+    drawShapeToken(token, x, y, tokenSize);
+  } else {
+    ctx.fillStyle = palette.ink;
+    ctx.font = "900 54px ui-rounded, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("?", x, y + 2);
+  }
 }
 
 function drawQuestionBadge(text, x, y) {
@@ -1297,11 +1403,16 @@ function renderGameToText() {
       label: choice.type === "number" ? String(choice.value) : choice.token.name,
     })),
     scene:
-      challenge.type === "pattern"
+      challenge.type === "pattern" || challenge.type === "logic-odd" || challenge.type === "logic-pair"
         ? {
             type: challenge.type,
             slots: challenge.scene.slots.map((slot) => (slot ? slot.name : "?")),
           }
+        : challenge.type === "logic-match"
+          ? {
+              type: challenge.type,
+              target: challenge.scene.target.name,
+            }
         : {
             type: challenge.type,
             item: challenge.scene.item.label,
