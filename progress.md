@@ -56,6 +56,8 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - Tightened age separation for the next iteration: 4-year-olds now stay mostly in the 5-7 band, 5-year-olds in 8-12, 6-year-olds in 13-16, and 7-year-olds in 17-20. Higher ages no longer keep reusing the same easy ranges as the lower groups.
 - Added animated answer explanations for arithmetic questions. After a correct add/subtract/missing-addend/double answer, the game now pauses longer and shows visual object-based hints for how the result is formed.
 - Bumped static asset references and service worker cache again to `v20` so devices already on v19 refresh the new answer-explanation behavior.
+- Added guaranteed mascot reactions for both success and failure. Every correct or wrong answer now triggers a visible animal action plus a spoken-style speech bubble on the main stage, not just score text.
+- Bumped static asset references and service worker cache to `v21` so family devices refresh the new mascot reaction behavior.
 - Restarted the server with `bash serve-mobile.sh`; current LAN URL printed as `http://192.168.10.109:8012` for same-Wi-Fi phone/iPad testing.
 - Tried Vercel device login again; it failed during token exchange with TLS disconnect. Added token-based deployment scripts so the user can paste a Vercel Personal Token locally without exposing it in chat or writing it to disk.
 - Switched publishing plan to GitHub Pages. Added `.github/workflows/pages.yml`, `.nojekyll`, `publish-github-pages.sh`, and `publish-github-pages-token.sh`.
@@ -66,6 +68,7 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - The dedicated `develop-web-game` Playwright client could not run because the environment has no `playwright` package installed; verification used browser automation instead to avoid adding a runtime dependency to this zero-dependency game.
 - v19 verification passed locally with `agent-browser`: default screenshot showed the new 7-year-old age button, logic-mode sampling for age 7 produced both `mirror` and `size-sort`, math-mode sampling for age 7 produced `double`, and a screenshot confirmed the `双倍数` scene renders correctly with the new age-7 difficulty label.
 - v20 verification passed locally with `agent-browser`: sampled age 4 mixed questions in the 5-7 band, age 5 mixed around 8-12, age 6 math around 10-16 with missing-addend/double, and age 7 logic with mirror/size-sort/sequence. Correct-answer arithmetic flow now pauses with a visual explanation hint before advancing.
+- v21 verification passed locally with `agent-browser`: direct reaction hook check returned mascot speech plus `animalAction`, correct-answer flow produced a bunny success action/speech state, wrong-answer flow produced a bunny retry action/speech state, and the main-stage reaction data matched the visible feedback.
 
 ## Next Ideas
 

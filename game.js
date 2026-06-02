@@ -810,13 +810,14 @@ function selectChoice(key) {
       completeLevel();
     } else {
       state.autoNextTimer = revealDuration;
-      state.mascotMessage = sample([
-        localize("太棒啦！", "Great job!"),
-        localize("你真会观察！", "Great observing!"),
-        localize("继续闯关！", "Keep going!"),
-      ]);
-      state.mascotMessageTimer = 1800;
-      state.animalBounce = 1;
+      triggerMascotReaction("success", {
+        message: sample([
+          localize("太棒啦！", "Great job!"),
+          localize("你真会观察！", "Great observing!"),
+          localize("继续闯关！", "Keep going!"),
+        ]),
+        duration: 2200,
+      });
       addGardenBloom();
       burstParticles();
     }
@@ -824,9 +825,10 @@ function selectChoice(key) {
   } else {
     state.feedback = "wrong";
     state.feedbackMessage = bilingualFeedback("再想想哦。", "Think again.");
-    state.mascotMessage = localize("再试试！", "Try again!");
-    state.mascotMessageTimer = 1800;
-    state.animalBounce = 0.35;
+    triggerMascotReaction("wrong", {
+      message: localize("再试试！", "Try again!"),
+      duration: 1900,
+    });
     state.feedbackTimer = 1800;
     state.triedKeys.add(key);
     playSound("wrong");
@@ -844,8 +846,11 @@ function completeLevel() {
   state.adventure = "reward";
   state.feedback = "level";
   state.feedbackMessage = bilingualFeedback("闯关成功！", "Level clear!");
-  state.mascotMessage = localize(`${animalName(rewardFriend)}来一起玩啦！`, `${animalName(rewardFriend)} joins the game!`);
-  state.mascotMessageTimer = 5200;
+  triggerMascotReaction("success", {
+    friend: rewardFriend,
+    message: localize(`${animalName(rewardFriend)}来一起玩啦！`, `${animalName(rewardFriend)} joins the game!`),
+    duration: 5200,
+  });
   state.rewardTimer = 5600;
   state.autoNextTimer = 0;
   state.animalBounce = 1.2;
@@ -906,9 +911,9 @@ function addTapSparkles(x, y) {
   }
 }
 
-function startAnimalAction(friend) {
-  const choices = animalActionKinds.filter((action) => action.id !== state.lastAnimalActionId);
-  const action = sample(choices.length ? choices : animalActionKinds);
+function startAnimalAction(friend, actionPool = animalActionKinds) {
+  const choices = actionPool.filter((action) => action.id !== state.lastAnimalActionId);
+  const action = sample(choices.length ? choices : actionPool);
   state.lastAnimalActionId = action.id;
   state.activeAnimalAction = {
     animalId: friend.id,
@@ -938,6 +943,33 @@ function startAnimalAction(friend) {
 function animalActionFor(friend) {
   if (!state.activeAnimalAction || state.activeAnimalAction.animalId !== friend.id) return null;
   return state.activeAnimalAction;
+}
+
+function primaryMascotFriend() {
+  const slots = friendSlots();
+  return slots[0] || {
+    ...animalFriends[0],
+    x: WIDTH / 2,
+    y: FLOOR_Y + 82,
+    r: isPhoneLayout() ? 76 : 48,
+  };
+}
+
+function triggerMascotReaction(kind, options = {}) {
+  const friend = options.friend || primaryMascotFriend();
+  const allowed =
+    kind === "success"
+      ? animalActionKinds.filter((action) => ["jump", "dance", "wave", "heart", "spin"].includes(action.id))
+      : animalActionKinds.filter((action) => ["wave", "peek", "jump", "spin"].includes(action.id));
+  const action = startAnimalAction(friend, allowed.length ? allowed : animalActionKinds);
+  const customMessage = options.message || "";
+  const speech =
+    kind === "success"
+      ? localize(`${animalName(friend)}${action.zh}！${customMessage || "答对啦！"}`, `${animalName(friend)} ${action.en}! ${customMessage || "Correct!"}`)
+      : localize(`${animalName(friend)}${action.zh}！${customMessage || "再想想哦。"} `, `${animalName(friend)} ${action.en}! ${customMessage || "Try again."}`);
+  state.mascotMessage = speech.trim();
+  state.mascotMessageTimer = options.duration || (kind === "success" ? 2200 : 1900);
+  state.animalBounce = kind === "success" ? 1.05 : 0.6;
 }
 
 function getAudioContext() {
