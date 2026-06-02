@@ -13,6 +13,7 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - Improved speech prompt behavior by preferring available Chinese system voices and using a slower, softer delivery.
 - Polished the comic look with paper grain, sun rays, stronger canvas frame treatment, soil/grass details, object shadows, shape highlights, and richer DOM button/card styling.
 - Bumped the service worker cache to `kids-math-garden-v5` so family devices refresh the updated assets.
+- Added `?v=5` to CSS and JS asset URLs so existing GitHub Pages visitors are less likely to see stale cached sounds or visuals.
 
 ## Verification Notes
 
