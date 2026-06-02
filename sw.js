@@ -1,8 +1,8 @@
-const CACHE_NAME = "kids-math-garden-v7";
+const CACHE_NAME = "kids-math-garden-v9";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=7",
+  "./styles.css?v=9",
   "./game.js?v=7",
   "./manifest.webmanifest",
   "./icon.svg"
