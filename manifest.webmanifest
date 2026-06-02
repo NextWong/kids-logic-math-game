@@ -1,7 +1,7 @@
 {
   "name": "小兔子闯关花园",
   "short_name": "闯关花园",
-  "description": "给 3-6 岁儿童练习数数、加法和逻辑规律的触屏小游戏。",
+  "description": "给 3-7 岁儿童练习数数、数学和逻辑规律的触屏小游戏。",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

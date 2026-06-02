@@ -78,7 +78,7 @@ const AGE_CONFIGS = {
     addPartMax: 6,
     patternLevel: 3,
     compareMax: 8,
-    logicTypes: ["match", "odd", "pair", "compare", "sequence"],
+    logicTypes: ["match", "odd", "pair", "compare", "sequence", "size-sort"],
     mathTypes: ["add", "subtract"],
     sequenceSteps: [1, 2],
     mixedTypes: ["count", "add", "subtract", "subtract", "pattern", "logic", "logic"],
@@ -92,12 +92,26 @@ const AGE_CONFIGS = {
     addPartMax: 9,
     patternLevel: 5,
     compareMax: 10,
-    logicTypes: ["odd", "pair", "compare", "sequence"],
-    mathTypes: ["add", "subtract", "missing-addend"],
+    logicTypes: ["odd", "pair", "compare", "sequence", "mirror", "size-sort"],
+    mathTypes: ["add", "subtract", "missing-addend", "double"],
     sequenceSteps: [2, 3, 4],
-    mixedTypes: ["count", "add", "subtract", "missing-addend", "missing-addend", "pattern", "logic", "logic"],
+    mixedTypes: ["count", "add", "subtract", "missing-addend", "double", "pattern", "logic", "logic"],
     difficultyZh: "6岁：数到16，16以内加减法，缺数加法和2/3/4跳数规律。",
     difficultyEn: "Age 6: count to 16, add/subtract to 16, missing addends, skip-counting.",
+  },
+  7: {
+    rounds: 9,
+    maxCount: 20,
+    maxSum: 20,
+    addPartMax: 12,
+    patternLevel: 6,
+    compareMax: 14,
+    logicTypes: ["odd", "pair", "compare", "sequence", "mirror", "size-sort"],
+    mathTypes: ["add", "subtract", "missing-addend", "double"],
+    sequenceSteps: [2, 3, 4, 5],
+    mixedTypes: ["count", "add", "subtract", "missing-addend", "double", "pattern", "logic", "logic", "logic"],
+    difficultyZh: "7岁：数到20，20以内加减法、双倍数、缺数加法、镜像规律和大小排序。",
+    difficultyEn: "Age 7: count to 20, math to 20, doubles, missing addends, mirror and size sorting.",
   },
 };
 
@@ -276,6 +290,7 @@ function makeMathChallenge() {
   const type = sample(ageConfig().mathTypes);
   if (type === "subtract") return makeSubtractChallenge();
   if (type === "missing-addend") return makeMissingAddendChallenge();
+  if (type === "double") return makeDoubleChallenge();
   return makeAddChallenge();
 }
 
@@ -393,6 +408,25 @@ function makeMissingAddendChallenge() {
   };
 }
 
+function makeDoubleChallenge() {
+  const config = ageConfig();
+  const left = randomInt(2, Math.min(config.addPartMax, Math.floor(config.maxSum / 2)));
+  const total = left * 2;
+  const item = sample(itemKinds);
+  return {
+    type: "double",
+    promptZh: `${left} 的双倍是多少？`,
+    promptEn: `What is double ${left}?`,
+    promptAudioKey: "",
+    promptAudio: "",
+    answerKey: String(total),
+    answerTextZh: String(total),
+    answerTextEn: String(total),
+    choices: numberChoices(total, 1, config.maxSum),
+    scene: { left, right: left, item },
+  };
+}
+
 function makePatternChallenge() {
   const selected = shuffle(shapeTokens).slice(0, ageConfig().patternLevel >= 5 ? 4 : 3);
   const patterns = [
@@ -402,6 +436,7 @@ function makePatternChallenge() {
     { level: 3, slots: [0, 1, 1, 0, 1, null], answer: 1 },
     { level: 4, slots: [0, 1, 2, 1, 0, null], answer: 1 },
     { level: 5, slots: [0, 1, 2, 3, 0, null], answer: 1 },
+    { level: 6, slots: [0, 1, 0, 2, 0, null], answer: 1 },
   ];
   const pattern = sample(patterns.filter((entry) => entry.level <= ageConfig().patternLevel));
   const answerToken = selected[pattern.answer];
@@ -534,6 +569,53 @@ function makeSequenceChallenge() {
   };
 }
 
+function makeMirrorChallenge() {
+  const [leftToken, innerToken] = shuffle(shapeTokens).slice(0, 2);
+  return {
+    type: "mirror",
+    promptZh: "镜子另一边应该是哪一个？",
+    promptEn: "Which shape belongs on the other side of the mirror?",
+    promptAudioKey: "",
+    promptAudio: "",
+    answerKey: leftToken.id,
+    answerTextZh: leftToken.nameZh,
+    answerTextEn: leftToken.nameEn,
+    choices: shapeChoices(leftToken),
+    scene: { slots: [leftToken, innerToken, null, innerToken], answer: leftToken },
+  };
+}
+
+function makeSizeSortChallenge() {
+  const token = sample(shapeTokens);
+  const stages = [
+    { key: "small", labelZh: "小", labelEn: "Small", scale: 0.66 },
+    { key: "medium", labelZh: "中", labelEn: "Medium", scale: 0.9 },
+    { key: "large", labelZh: "大", labelEn: "Large", scale: 1.16 },
+    { key: "giant", labelZh: "超大", labelEn: "Giant", scale: 1.42 },
+  ];
+  const isAge7 = state.age >= 7;
+  const slots = isAge7 ? [stages[0], stages[1], stages[2], null] : [stages[0], stages[1], null];
+  const answer = isAge7 ? stages[3] : stages[2];
+  const choices = shuffle([answer, ...shuffle(stages.filter((stage) => stage.key !== answer.key)).slice(0, 3)]).map((stage) => ({
+    type: "text",
+    key: stage.key,
+    labelZh: stage.labelZh,
+    labelEn: stage.labelEn,
+  }));
+  return {
+    type: "size-sort",
+    promptZh: "按从小到大排，下一个应该是什么？",
+    promptEn: "In order from small to big, what comes next?",
+    promptAudioKey: "",
+    promptAudio: "",
+    answerKey: answer.key,
+    answerTextZh: answer.labelZh,
+    answerTextEn: answer.labelEn,
+    choices,
+    scene: { token, slots, answer },
+  };
+}
+
 function makeLogicChallenge() {
   const logicMakers = {
     match: makeLogicMatchChallenge,
@@ -541,6 +623,8 @@ function makeLogicChallenge() {
     pair: makeLogicPairChallenge,
     compare: makeCompareChallenge,
     sequence: makeSequenceChallenge,
+    mirror: makeMirrorChallenge,
+    "size-sort": makeSizeSortChallenge,
   };
   const makers = ageConfig().logicTypes.map((type) => logicMakers[type]).filter(Boolean);
   return sample(makers)();
@@ -556,6 +640,7 @@ function makeChallenge() {
     add: makeAddChallenge,
     subtract: makeSubtractChallenge,
     "missing-addend": makeMissingAddendChallenge,
+    double: makeDoubleChallenge,
     pattern: makePatternChallenge,
     logic: makeLogicChallenge,
   };
@@ -1462,12 +1547,15 @@ function drawChallenge() {
   if (state.challenge.type === "add") drawAddChallenge();
   if (state.challenge.type === "subtract") drawSubtractChallenge();
   if (state.challenge.type === "missing-addend") drawMissingAddendChallenge();
+  if (state.challenge.type === "double") drawDoubleChallenge();
   if (state.challenge.type === "pattern") drawPatternChallenge();
   if (state.challenge.type === "logic-match") drawLogicMatchChallenge();
   if (state.challenge.type === "logic-odd") drawLogicOddChallenge();
   if (state.challenge.type === "logic-pair") drawLogicPairChallenge();
   if (state.challenge.type === "compare") drawCompareChallenge();
   if (state.challenge.type === "sequence") drawSequenceChallenge();
+  if (state.challenge.type === "mirror") drawMirrorChallenge();
+  if (state.challenge.type === "size-sort") drawSizeSortChallenge();
 }
 
 function drawFormulaPanel(text, y = 398, width = 432) {
@@ -1563,6 +1651,23 @@ function drawMissingAddendChallenge() {
   ctx.fillText(localize("总数", "Total"), mobile ? 625 : 633, mobile ? 230 : 232);
   drawNumberCard(total, mobile ? 625 : 633, mobile ? 282 : 282, mobile ? 78 : 68);
   drawFormulaPanel(`${left} + ? = ${total}`);
+}
+
+function drawDoubleChallenge() {
+  const { left, item } = state.challenge.scene;
+  const mobile = isPhoneLayout();
+  const itemSize = left > 8 ? 32 : left > 6 ? 36 : left > 4 ? 42 : 48;
+  drawQuestionBadge(localize("双倍数", "Double"), 480, 142);
+  const leftLayout = mobile ? layoutPositions(left, 72, 176, 336, 214) : layoutPositions(left, 146, 190, 254, 190);
+  const rightLayout = mobile ? layoutPositions(left, 552, 176, 336, 214) : layoutPositions(left, 560, 190, 254, 190);
+  leftLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(itemSize, left > 7 ? 1.18 : 1.32)));
+  rightLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(itemSize, left > 7 ? 1.18 : 1.32)));
+  ctx.fillStyle = palette.ink;
+  ctx.font = `950 ${mobile ? 54 : 44}px ui-rounded, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("+", 480, 286);
+  drawFormulaPanel(`${left} + ${left} = ?`);
 }
 
 function drawTakeAwayMark(x, y, size) {
@@ -1664,6 +1769,44 @@ function drawSequenceChallenge() {
   const startX = 480 - ((slots.length - 1) * gap) / 2;
   slots.forEach((value, index) => {
     drawNumberCard(value, startX + index * gap, 302, isPhoneLayout() ? 126 : 104);
+  });
+}
+
+function drawMirrorChallenge() {
+  drawQuestionBadge(localize("镜像规律", "Mirror"), 480, 142);
+  const mobile = isPhoneLayout();
+  const startX = mobile ? 220 : 276;
+  const gap = mobile ? 118 : 108;
+  const cardSize = mobile ? 120 : 92;
+  const tokenSize = mobile ? 84 : 58;
+  state.challenge.scene.slots.forEach((token, index) => {
+    drawShapeCard(token, startX + index * gap, 302, cardSize, tokenSize);
+  });
+  ctx.save();
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.2)";
+  ctx.lineWidth = 6;
+  ctx.setLineDash([10, 12]);
+  ctx.beginPath();
+  ctx.moveTo(480, 208);
+  ctx.lineTo(480, 408);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawSizeSortChallenge() {
+  drawQuestionBadge(localize("大小排序", "Size order"), 480, 142);
+  const mobile = isPhoneLayout();
+  const slots = state.challenge.scene.slots;
+  const gap = mobile ? 170 : 146;
+  const startX = 480 - ((slots.length - 1) * gap) / 2;
+  slots.forEach((stage, index) => {
+    const x = startX + index * gap;
+    const y = 302;
+    if (!stage) {
+      drawNumberCard(null, x, y, mobile ? 124 : 104);
+      return;
+    }
+    drawShapeCard(state.challenge.scene.token, x, y, mobile ? 132 : 110, (mobile ? 72 : 52) * stage.scale);
   });
 }
 
@@ -2252,7 +2395,7 @@ function renderGameToText() {
 }
 
 function renderSceneText(challenge) {
-  if (challenge.type === "pattern" || challenge.type === "logic-odd" || challenge.type === "logic-pair") {
+  if (challenge.type === "pattern" || challenge.type === "logic-odd" || challenge.type === "logic-pair" || challenge.type === "mirror") {
     return {
       type: challenge.type,
       slots: challenge.scene.slots.map((slot) => (slot ? shapeName(slot) : "?")),
@@ -2276,6 +2419,13 @@ function renderSceneText(challenge) {
     return {
       type: challenge.type,
       slots: challenge.scene.slots.map((slot) => (slot === null ? "?" : String(slot))),
+    };
+  }
+  if (challenge.type === "size-sort") {
+    return {
+      type: challenge.type,
+      shape: shapeName(challenge.scene.token),
+      slots: challenge.scene.slots.map((slot) => (slot ? localize(slot.labelZh, slot.labelEn) : "?")),
     };
   }
   if (challenge.type === "subtract") {
