@@ -28,6 +28,7 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - Separated arithmetic formulas from countable objects with a fixed bottom formula panel, so add/subtract/missing-addend equations no longer cover the objects children need to count.
 - Increased age differentiation for v17: age 3 is 4以内 and match-only logic, age 4 is 7以内 with odd/pair/compare, age 5 is 12以内 with more subtraction, and age 6 is 16以内 with missing addends and 2/3/4 skip-counting.
 - Added 4-column object layouts for higher-count 6-year-old questions so more challenging questions stay readable on mobile.
+- Bumped static assets/cache to v18 and synchronized the first-load HTML difficulty placeholder with the new 3-year-old range.
 
 ## Verification Notes
 
