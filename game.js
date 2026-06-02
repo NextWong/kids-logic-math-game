@@ -47,53 +47,57 @@ const UI_TEXT = {
 const AGE_CONFIGS = {
   3: {
     rounds: 6,
-    maxCount: 5,
-    maxSum: 5,
-    addPartMax: 3,
+    maxCount: 4,
+    maxSum: 4,
+    addPartMax: 2,
     patternLevel: 1,
-    logicTypes: ["match", "odd"],
+    compareMax: 0,
+    logicTypes: ["match"],
     mathTypes: ["add"],
-    mixedTypes: ["count", "count", "add", "pattern", "logic"],
-    difficultyZh: "3岁：数到5，5以内加法，AB规律，找一样/找不同。",
-    difficultyEn: "Age 3: count to 5, sums to 5, AB patterns, same/different.",
+    mixedTypes: ["count", "count", "count", "add", "pattern", "logic"],
+    difficultyZh: "3岁：数到4，4以内加法，AB规律，只找一样。",
+    difficultyEn: "Age 3: count to 4, sums to 4, AB patterns, match only.",
   },
   4: {
     rounds: 6,
-    maxCount: 8,
-    maxSum: 8,
+    maxCount: 7,
+    maxSum: 7,
     addPartMax: 4,
     patternLevel: 2,
+    compareMax: 6,
     logicTypes: ["match", "odd", "pair", "compare"],
     mathTypes: ["add"],
-    mixedTypes: ["count", "add", "pattern", "logic", "logic"],
-    difficultyZh: "4岁：数到8，8以内加法，配对补空格，比较多少。",
-    difficultyEn: "Age 4: count to 8, sums to 8, pairs, more/less.",
+    mixedTypes: ["count", "count", "add", "pattern", "logic", "logic"],
+    difficultyZh: "4岁：数到7，7以内加法，找不同、配对和比较多少。",
+    difficultyEn: "Age 4: count to 7, sums to 7, odd one, pairs, more/less.",
   },
   5: {
     rounds: 7,
-    maxCount: 10,
-    maxSum: 10,
+    maxCount: 12,
+    maxSum: 12,
     addPartMax: 6,
     patternLevel: 3,
+    compareMax: 8,
     logicTypes: ["match", "odd", "pair", "compare", "sequence"],
     mathTypes: ["add", "subtract"],
     sequenceSteps: [1, 2],
-    mixedTypes: ["count", "add", "subtract", "pattern", "logic", "logic"],
-    difficultyZh: "5岁：数到10，10以内加减法，数字规律，复杂图形规律。",
-    difficultyEn: "Age 5: count to 10, add/subtract to 10, number patterns.",
+    mixedTypes: ["count", "add", "subtract", "subtract", "pattern", "logic", "logic"],
+    difficultyZh: "5岁：数到12，12以内加减法，数字规律和复杂图形规律。",
+    difficultyEn: "Age 5: count to 12, add/subtract to 12, number and shape patterns.",
   },
   6: {
     rounds: 8,
-    maxCount: 12,
-    maxSum: 12,
-    addPartMax: 8,
-    patternLevel: 4,
-    logicTypes: ["match", "odd", "pair", "compare", "sequence"],
+    maxCount: 16,
+    maxSum: 16,
+    addPartMax: 9,
+    patternLevel: 5,
+    compareMax: 10,
+    logicTypes: ["odd", "pair", "compare", "sequence"],
     mathTypes: ["add", "subtract", "missing-addend"],
-    sequenceSteps: [1, 2, 3],
-    mixedTypes: ["count", "add", "subtract", "missing-addend", "pattern", "logic", "logic"],
-    difficultyZh: "6岁：数到12，12以内加减法，缺数加法，跳数规律。",
-    difficultyEn: "Age 6: count to 12, add/subtract to 12, missing addends, skip patterns.",
+    sequenceSteps: [2, 3, 4],
+    mixedTypes: ["count", "add", "subtract", "missing-addend", "missing-addend", "pattern", "logic", "logic"],
+    difficultyZh: "6岁：数到16，16以内加减法，缺数加法和2/3/4跳数规律。",
+    difficultyEn: "Age 6: count to 16, add/subtract to 16, missing addends, skip-counting.",
   },
 };
 
@@ -323,7 +327,7 @@ function makeCountChallenge() {
     answerKey: String(count),
     answerTextZh: String(count),
     answerTextEn: String(count),
-    choices: numberChoices(count, 1, Math.max(config.maxCount, 6)),
+    choices: numberChoices(count, 1, config.maxCount),
     scene: { count, item },
   };
 }
@@ -344,7 +348,7 @@ function makeAddChallenge() {
     answerKey: String(total),
     answerTextZh: String(total),
     answerTextEn: String(total),
-    choices: numberChoices(total, 1, Math.max(config.maxSum, 6)),
+    choices: numberChoices(total, 1, config.maxSum),
     scene: { left, right, item },
   };
 }
@@ -364,7 +368,7 @@ function makeSubtractChallenge() {
     answerKey: String(answer),
     answerTextZh: String(answer),
     answerTextEn: String(answer),
-    choices: numberChoices(answer, 1, Math.max(config.maxSum, 8)),
+    choices: numberChoices(answer, 1, config.maxSum),
     scene: { total, remove, item },
   };
 }
@@ -390,13 +394,14 @@ function makeMissingAddendChallenge() {
 }
 
 function makePatternChallenge() {
-  const selected = shuffle(shapeTokens).slice(0, 3);
+  const selected = shuffle(shapeTokens).slice(0, ageConfig().patternLevel >= 5 ? 4 : 3);
   const patterns = [
     { level: 1, slots: [0, 1, 0, 1, 0, null], answer: 1 },
     { level: 1, slots: [0, 0, 1, 0, 0, null], answer: 1 },
     { level: 2, slots: [0, 1, 2, 0, 1, null], answer: 2 },
     { level: 3, slots: [0, 1, 1, 0, 1, null], answer: 1 },
     { level: 4, slots: [0, 1, 2, 1, 0, null], answer: 1 },
+    { level: 5, slots: [0, 1, 2, 3, 0, null], answer: 1 },
   ];
   const pattern = sample(patterns.filter((entry) => entry.level <= ageConfig().patternLevel));
   const answerToken = selected[pattern.answer];
@@ -484,7 +489,8 @@ function makeLogicPairChallenge() {
 }
 
 function makeCompareChallenge() {
-  const max = Math.min(ageConfig().maxCount, 9);
+  const config = ageConfig();
+  const max = config.compareMax || Math.min(config.maxCount, 9);
   const item = sample(itemKinds);
   const left = randomInt(1, max);
   const right = randomInt(1, max);
@@ -1464,12 +1470,37 @@ function drawChallenge() {
   if (state.challenge.type === "sequence") drawSequenceChallenge();
 }
 
+function drawFormulaPanel(text, y = 398, width = 432) {
+  const mobile = isPhoneLayout();
+  const panelWidth = mobile ? Math.max(width, 500) : width;
+  const panelHeight = mobile ? 72 : 64;
+  const x = WIDTH / 2 - panelWidth / 2;
+  drawObjectShadow(WIDTH / 2, y + panelHeight + 6, panelWidth * 0.42, 11, 0.08);
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 253, 244, 0.94)";
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.16)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(x, y, panelWidth, panelHeight, 24);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = palette.ink;
+  ctx.font = `950 ${mobile ? 52 : 44}px ui-rounded, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, WIDTH / 2, y + panelHeight / 2 + 2);
+  ctx.restore();
+}
+
 function drawCountChallenge() {
   const { count, item } = state.challenge.scene;
   const mobile = isPhoneLayout();
-  const positions = mobile ? layoutPositions(count, 120, 158, 720, 282) : layoutPositions(count, 210, 168, 540, 285);
-  const baseSize = count <= 6 ? 58 : count <= 9 ? 48 : 40;
-  const scale = count <= 6 ? 1.46 : count <= 9 ? 1.2 : 1.1;
+  const maxColumns = count > 12 ? 4 : 3;
+  const positions = mobile
+    ? layoutPositions(count, 92, 158, 776, 292, maxColumns)
+    : layoutPositions(count, 178, 166, 604, 288, maxColumns);
+  const baseSize = count <= 6 ? 58 : count <= 9 ? 48 : count <= 12 ? 40 : 34;
+  const scale = count <= 6 ? 1.46 : count <= 9 ? 1.2 : count <= 12 ? 1.1 : 1.04;
   drawQuestionBadge(localize("数一数", "Count"), 480, 142);
   positions.forEach((position, index) => {
     drawItem(item, position.x, position.y, phoneScale(baseSize + (index % 2) * 4, scale));
@@ -1479,51 +1510,59 @@ function drawCountChallenge() {
 function drawAddChallenge() {
   const { left, right, item } = state.challenge.scene;
   const mobile = isPhoneLayout();
-  const itemSize = Math.max(left, right) > 4 ? 42 : 48;
+  const maxGroup = Math.max(left, right);
+  const itemSize = maxGroup > 7 ? 34 : maxGroup > 5 ? 38 : maxGroup > 3 ? 44 : 50;
   drawQuestionBadge(localize("合起来", "Add"), 480, 142);
-  const leftLayout = mobile ? layoutPositions(left, 100, 200, 300, 178) : layoutPositions(left, 170, 220, 210, 140);
-  const rightLayout = mobile ? layoutPositions(right, 560, 200, 300, 178) : layoutPositions(right, 580, 220, 210, 140);
-  leftLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(itemSize, 1.45)));
-  rightLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(itemSize, 1.45)));
+  const leftLayout = mobile ? layoutPositions(left, 72, 176, 336, 214) : layoutPositions(left, 146, 190, 254, 190);
+  const rightLayout = mobile ? layoutPositions(right, 552, 176, 336, 214) : layoutPositions(right, 560, 190, 254, 190);
+  leftLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(itemSize, maxGroup > 6 ? 1.26 : 1.4)));
+  rightLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(itemSize, maxGroup > 6 ? 1.26 : 1.4)));
   ctx.fillStyle = palette.ink;
-  ctx.font = `900 ${isPhoneLayout() ? 74 : 58}px ui-rounded, system-ui, sans-serif`;
+  ctx.font = `950 ${mobile ? 54 : 44}px ui-rounded, system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("+", 480, 286);
-  ctx.fillText("?", 480, 370);
+  drawFormulaPanel(`${left} + ${right} = ?`);
 }
 
 function drawSubtractChallenge() {
   const { total, remove, item } = state.challenge.scene;
   const mobile = isPhoneLayout();
-  const positions = mobile ? layoutPositions(total, 130, 178, 700, 250) : layoutPositions(total, 225, 180, 510, 245);
-  const itemSize = total > 9 ? 38 : total > 6 ? 44 : 50;
+  const maxColumns = total > 12 ? 4 : 3;
+  const positions = mobile
+    ? layoutPositions(total, 94, 164, 772, 224, maxColumns)
+    : layoutPositions(total, 174, 174, 612, 214, maxColumns);
+  const itemSize = total > 12 ? 33 : total > 9 ? 37 : total > 6 ? 44 : 50;
   drawQuestionBadge(localize("减一减", "Take away"), 480, 142);
   positions.forEach((position, index) => {
-    drawItem(item, position.x, position.y, phoneScale(itemSize, total > 8 ? 1.08 : 1.22));
-    if (index < remove) drawTakeAwayMark(position.x, position.y, phoneScale(itemSize, 1.08));
+    const displaySize = phoneScale(itemSize, total > 10 ? 1.02 : total > 8 ? 1.08 : 1.2);
+    drawItem(item, position.x, position.y, displaySize);
+    if (index < remove) drawTakeAwayMark(position.x, position.y, displaySize);
   });
-  ctx.fillStyle = palette.ink;
-  ctx.font = `900 ${mobile ? 66 : 54}px ui-rounded, system-ui, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(`${total} - ${remove} = ?`, 480, 390);
+  drawFormulaPanel(`${total} - ${remove} = ?`);
 }
 
 function drawMissingAddendChallenge() {
   const { left, total, item } = state.challenge.scene;
   const mobile = isPhoneLayout();
   drawQuestionBadge(localize("缺哪个数", "Missing"), 480, 142);
-  const leftLayout = mobile ? layoutPositions(left, 116, 218, 248, 150) : layoutPositions(left, 158, 220, 216, 142);
-  leftLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(48, 1.34)));
-  ctx.fillStyle = palette.ink;
-  ctx.font = `900 ${mobile ? 64 : 54}px ui-rounded, system-ui, sans-serif`;
+  const itemSize = left > 7 ? 34 : left > 5 ? 38 : 46;
+  const leftLayout = mobile ? layoutPositions(left, 142, 178, 296, 206) : layoutPositions(left, 180, 190, 252, 186);
+  leftLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(itemSize, left > 6 ? 1.18 : 1.34)));
+  ctx.fillStyle = "rgba(255, 253, 244, 0.78)";
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.14)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(mobile ? 540 : 560, mobile ? 206 : 210, mobile ? 170 : 146, mobile ? 116 : 100, 22);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = palette.muted;
+  ctx.font = `900 ${mobile ? 24 : 22}px ui-rounded, system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("+", 404, 302);
-  drawNumberCard(null, 498, 302, mobile ? 122 : 104);
-  ctx.fillText("=", 604, 302);
-  drawNumberCard(total, 712, 302, mobile ? 122 : 104);
+  ctx.fillText(localize("总数", "Total"), mobile ? 625 : 633, mobile ? 230 : 232);
+  drawNumberCard(total, mobile ? 625 : 633, mobile ? 282 : 282, mobile ? 78 : 68);
+  drawFormulaPanel(`${left} + ? = ${total}`);
 }
 
 function drawTakeAwayMark(x, y, size) {
@@ -1837,8 +1876,8 @@ function drawSpeechBubble() {
   ctx.restore();
 }
 
-function layoutPositions(count, x, y, width, height) {
-  const columns = count <= 3 ? count : 3;
+function layoutPositions(count, x, y, width, height, maxColumns = 3) {
+  const columns = count <= maxColumns ? count : maxColumns;
   const rows = Math.ceil(count / columns);
   const cellW = width / columns;
   const cellH = height / rows;
