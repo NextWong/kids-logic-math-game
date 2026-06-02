@@ -20,6 +20,9 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - Added a focused logic mode plus three preschool logic challenge types: find same, find different, and complete the matching pair. Added built-in prompt audio for the new logic prompts and bumped assets/cache to `v7`.
 - Expanded the mobile canvas again for v9 so the main playfield is about 456px tall on a 390x844 phone viewport, enlarged answer cards to about 102px, and reduced unused bottom whitespace.
 - Restored the mobile canvas to its native 48:31 aspect ratio for v12 so the playfield no longer stretches vertically, then enlarged the drawn question objects, logic cards, and animal friends inside the canvas for phone layouts.
+- Added age levels for 3, 4, 5, and 6 years old. Older ages increase the number range, questions per level, and logic challenge set.
+- Added Chinese/English UI switching, bilingual correct/wrong feedback, and English system-voice fallback for English prompts.
+- Reworked the loop into a bunny quest mode: each level takes 6-8 correct answers, then unlocks an animal friend and shows a random swing, dance, climbing, or ball-play reward scene before the next level.
 
 ## Verification Notes
 
@@ -39,6 +42,7 @@ Original prompt: 帮我打开一个新的文件夹和项目空间。在这里做
 - Mobile v7 verification passed locally with `agent-browser`: 390x844 layout screenshot, desktop screenshot, logic mode screenshot, logic-answer flow, built-in logic prompt MP3 loading, and all three new logic challenge types checked with no console errors.
 - Mobile v9 verification passed locally with `agent-browser`: 390x844 mixed and logic screenshots, measured canvas/answer sizes, and no console errors.
 - Mobile v12 verification passed locally with `agent-browser`: 390x844 canvas measured at 376x243, default counting screenshot checked, logic odd/match/pair templates checked, and no console errors.
+- Mobile v14 verification passed locally with `agent-browser`: 390x844 age/language controls, 6-year-old English logic mode, wrong/correct bilingual feedback, compare challenge, number sequence challenge, reward scene, and reward Next flow all checked with no console errors.
 - Restarted the server with `bash serve-mobile.sh`; current LAN URL printed as `http://192.168.10.109:8012` for same-Wi-Fi phone/iPad testing.
 - Tried Vercel device login again; it failed during token exchange with TLS disconnect. Added token-based deployment scripts so the user can paste a Vercel Personal Token locally without exposing it in chat or writing it to disk.
 - Switched publishing plan to GitHub Pages. Added `.github/workflows/pages.yml`, `.nojekyll`, `publish-github-pages.sh`, and `publish-github-pages-token.sh`.

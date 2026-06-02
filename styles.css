@@ -109,7 +109,9 @@ h1 {
 }
 
 .stats span,
-.mode-button {
+.mode-button,
+.age-button,
+.language-button {
   border: 2px solid rgba(36, 49, 43, 0.13);
   background: rgba(255, 253, 244, 0.86);
   box-shadow: 0 4px 0 rgba(36, 49, 43, 0.06), 0 8px 20px rgba(36, 49, 43, 0.08);
@@ -122,6 +124,21 @@ h1 {
   padding: 0 16px;
   border-radius: 999px;
   font-weight: 800;
+}
+
+.settings-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.segmented-control {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
 }
 
 .stage {
@@ -192,7 +209,9 @@ h1 {
 
 .small-action,
 .choice-button,
-.mode-button {
+.mode-button,
+.age-button,
+.language-button {
   cursor: pointer;
   border: 0;
   color: var(--ink);
@@ -217,6 +236,10 @@ h1 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   min-height: 116px;
+}
+
+.choices[data-count="3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .choice-button {
@@ -254,7 +277,9 @@ h1 {
 
 .choice-button:active,
 .small-action:active,
-.mode-button:active {
+.mode-button:active,
+.age-button:active,
+.language-button:active {
   box-shadow: 0 5px 12px rgba(36, 49, 43, 0.14);
 }
 
@@ -287,6 +312,19 @@ h1 {
     #f6fbff;
   border: 3px solid rgba(36, 49, 43, 0.14);
   box-shadow: inset 0 -5px 0 rgba(93, 169, 233, 0.08);
+}
+
+.choice-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  min-height: 58px;
+  padding: 0 8px;
+  color: var(--ink);
+  font-size: 1.35rem;
+  line-height: 1.05;
+  font-weight: 950;
 }
 
 .choice-swatch {
@@ -388,7 +426,17 @@ h1 {
   font-weight: 900;
 }
 
-.mode-button.active {
+.age-button,
+.language-button {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.mode-button.active,
+.age-button.active,
+.language-button.active {
   color: #ffffff;
   background: var(--focus);
 }
@@ -448,6 +496,22 @@ button:focus-visible {
     min-height: 30px;
     padding: 0 9px;
     font-size: 0.82rem;
+  }
+
+  .settings-strip {
+    gap: 6px;
+    margin: 0 0 6px;
+  }
+
+  .segmented-control {
+    gap: 4px;
+  }
+
+  .age-button,
+  .language-button {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 0.78rem;
   }
 
   .stage {
@@ -522,6 +586,13 @@ button:focus-visible {
     width: 70px;
     height: 70px;
     border-width: 2px;
+  }
+
+  .choice-label {
+    min-width: 58px;
+    min-height: 46px;
+    padding: 0 4px;
+    font-size: 0.98rem;
   }
 
   .choice-swatch {
@@ -612,7 +683,9 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .small-action,
   .choice-button,
-  .mode-button {
+  .mode-button,
+  .age-button,
+  .language-button {
     transition: none;
   }
 

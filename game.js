@@ -2,14 +2,18 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const ui = {
+  ageButtons: document.querySelectorAll(".age-button"),
   choices: document.getElementById("choices"),
   feedback: document.getElementById("feedbackText"),
+  languageButtons: document.querySelectorAll(".language-button"),
   modeLabel: document.getElementById("modeLabel"),
+  modeButtons: document.querySelectorAll(".mode-button"),
   next: document.getElementById("nextBtn"),
   prompt: document.getElementById("promptText"),
   round: document.getElementById("roundLabel"),
   speak: document.getElementById("speakBtn"),
   star: document.getElementById("starMeter"),
+  title: document.querySelector("h1"),
 };
 
 const WIDTH = 960;
@@ -18,11 +22,32 @@ const FLOOR_Y = 472;
 const AUDIO_VERSION = "7";
 const PROMPT_AUDIO_BASE = "./audio/prompts";
 const MODE_LABELS = {
-  mixed: "混合练习",
-  count: "数数练习",
-  add: "加法练习",
-  pattern: "规律练习",
-  logic: "逻辑练习",
+  mixed: { zh: "混合练习", en: "Mixed" },
+  count: { zh: "数数练习", en: "Counting" },
+  add: { zh: "加法练习", en: "Adding" },
+  pattern: { zh: "规律练习", en: "Patterns" },
+  logic: { zh: "逻辑练习", en: "Logic" },
+};
+const MODE_BUTTON_LABELS = {
+  mixed: { zh: "混合", en: "Mix" },
+  count: { zh: "数数", en: "Count" },
+  add: { zh: "加法", en: "Add" },
+  pattern: { zh: "规律", en: "Pattern" },
+  logic: { zh: "逻辑", en: "Logic" },
+};
+const UI_TEXT = {
+  title: { zh: "小兔子闯关花园", en: "Bunny Quest Garden" },
+  listen: { zh: "听", en: "Hear" },
+  next: { zh: "换", en: "Next" },
+  nextLevel: { zh: "下一关", en: "Next" },
+  stars: { zh: "颗星", en: "stars" },
+  levelClear: { zh: "闯关成功！", en: "Level clear!" },
+};
+const AGE_CONFIGS = {
+  3: { rounds: 6, maxCount: 5, maxSum: 5, patternLevel: 1, logicLevel: 1 },
+  4: { rounds: 6, maxCount: 8, maxSum: 8, patternLevel: 2, logicLevel: 2 },
+  5: { rounds: 7, maxCount: 10, maxSum: 10, patternLevel: 3, logicLevel: 3 },
+  6: { rounds: 8, maxCount: 12, maxSum: 12, patternLevel: 4, logicLevel: 4 },
 };
 
 const palette = {
@@ -49,47 +74,61 @@ const palette = {
 };
 
 const shapeTokens = [
-  { id: "red-circle", shape: "circle", color: palette.red, name: "红圆" },
-  { id: "blue-square", shape: "square", color: palette.blue, name: "蓝方块" },
-  { id: "yellow-triangle", shape: "triangle", color: palette.yellow, name: "黄三角" },
-  { id: "violet-diamond", shape: "diamond", color: palette.violet, name: "紫菱形" },
-  { id: "teal-circle", shape: "circle", color: palette.teal, name: "绿圆" },
-  { id: "pink-heart", shape: "heart", color: palette.pink, name: "粉爱心" },
-  { id: "orange-star", shape: "star", color: palette.orange, name: "橙星星" },
+  { id: "red-circle", shape: "circle", color: palette.red, name: "红圆", nameZh: "红圆", nameEn: "red circle" },
+  { id: "blue-square", shape: "square", color: palette.blue, name: "蓝方块", nameZh: "蓝方块", nameEn: "blue square" },
+  { id: "yellow-triangle", shape: "triangle", color: palette.yellow, name: "黄三角", nameZh: "黄三角", nameEn: "yellow triangle" },
+  { id: "violet-diamond", shape: "diamond", color: palette.violet, name: "紫菱形", nameZh: "紫菱形", nameEn: "purple diamond" },
+  { id: "teal-circle", shape: "circle", color: palette.teal, name: "绿圆", nameZh: "绿圆", nameEn: "green circle" },
+  { id: "pink-heart", shape: "heart", color: palette.pink, name: "粉爱心", nameZh: "粉爱心", nameEn: "pink heart" },
+  { id: "orange-star", shape: "star", color: palette.orange, name: "橙星星", nameZh: "橙星星", nameEn: "orange star" },
 ];
 
 const itemKinds = [
-  { id: "flower", label: "小花", color: palette.red },
-  { id: "berry", label: "果子", color: palette.violet },
-  { id: "carrot", label: "胡萝卜", color: palette.orange },
-  { id: "fish", label: "小鱼", color: palette.blue },
-  { id: "balloon", label: "气球", color: palette.pink },
-  { id: "star-treat", label: "星星糖", color: palette.yellow },
+  { id: "flower", label: "小花", labelZh: "小花", labelEn: "flowers", color: palette.red },
+  { id: "berry", label: "果子", labelZh: "果子", labelEn: "berries", color: palette.violet },
+  { id: "carrot", label: "胡萝卜", labelZh: "胡萝卜", labelEn: "carrots", color: palette.orange },
+  { id: "fish", label: "小鱼", labelZh: "小鱼", labelEn: "fish", color: palette.blue },
+  { id: "balloon", label: "气球", labelZh: "气球", labelEn: "balloons", color: palette.pink },
+  { id: "star-treat", label: "星星糖", labelZh: "星星糖", labelEn: "star treats", color: palette.yellow },
 ];
 
 const animalFriends = [
-  { id: "bunny", name: "兔兔", body: palette.white, accent: palette.pink },
-  { id: "panda", name: "熊猫", body: palette.panda, accent: palette.ink },
-  { id: "fox", name: "小狐狸", body: palette.fox, accent: palette.white },
-  { id: "chick", name: "小鸡", body: palette.yellow, accent: palette.orange },
-  { id: "kitty", name: "小猫", body: palette.cream, accent: palette.brown },
+  { id: "bunny", name: "兔兔", nameZh: "兔兔", nameEn: "Bunny", body: palette.white, accent: palette.pink },
+  { id: "panda", name: "熊猫", nameZh: "熊猫", nameEn: "Panda", body: palette.panda, accent: palette.ink },
+  { id: "fox", name: "小狐狸", nameZh: "小狐狸", nameEn: "Fox", body: palette.fox, accent: palette.white },
+  { id: "chick", name: "小鸡", nameZh: "小鸡", nameEn: "Chick", body: palette.yellow, accent: palette.orange },
+  { id: "kitty", name: "小猫", nameZh: "小猫", nameEn: "Kitty", body: palette.cream, accent: palette.brown },
+];
+const activityKinds = [
+  { id: "swing", zh: "荡秋千", en: "swinging", promptEn: "play on the swing", lineEn: "are swinging" },
+  { id: "dance", zh: "跳舞", en: "dancing", promptEn: "dance", lineEn: "are dancing" },
+  { id: "climb", zh: "攀岩", en: "climbing", promptEn: "climb", lineEn: "are climbing" },
+  { id: "ball", zh: "玩球", en: "playing ball", promptEn: "play ball", lineEn: "are playing ball" },
 ];
 
 const state = {
+  age: 3,
+  language: "zh",
   mode: "mixed",
+  level: 1,
+  levelProgress: 0,
   round: 1,
   stars: 0,
+  adventure: "question",
   challenge: null,
   feedback: "idle",
   feedbackMessage: "",
   feedbackTimer: 0,
   autoNextTimer: 0,
+  rewardTimer: 0,
+  rewardAnimal: null,
+  rewardActivity: activityKinds[0],
   triedKeys: new Set(),
   lastSelectedKey: "",
   garden: [],
   unlockedAnimals: 1,
   animalBounce: 0,
-  mascotMessage: "摸摸小动物，一起玩！",
+  mascotMessage: "摸摸小动物，一起闯关！",
   mascotMessageTimer: 4000,
   particles: [],
   time: 0,
@@ -106,6 +145,65 @@ function isPhoneLayout() {
 
 function phoneScale(value, scale = 1.28) {
   return isPhoneLayout() ? value * scale : value;
+}
+
+function localize(zh, en) {
+  return state.language === "en" ? en : zh;
+}
+
+function uiText(key) {
+  const entry = UI_TEXT[key];
+  return entry ? localize(entry.zh, entry.en) : key;
+}
+
+function modeLabel(mode) {
+  const entry = MODE_LABELS[mode] || MODE_LABELS.mixed;
+  return localize(entry.zh, entry.en);
+}
+
+function modeButtonLabel(mode) {
+  const entry = MODE_BUTTON_LABELS[mode] || MODE_BUTTON_LABELS.mixed;
+  return localize(entry.zh, entry.en);
+}
+
+function ageConfig() {
+  return AGE_CONFIGS[state.age] || AGE_CONFIGS[3];
+}
+
+function levelGoal() {
+  return ageConfig().rounds;
+}
+
+function itemLabel(item) {
+  return localize(item.labelZh || item.label, item.labelEn || item.label);
+}
+
+function shapeName(token) {
+  return localize(token.nameZh || token.name, token.nameEn || token.name);
+}
+
+function animalName(friend) {
+  return localize(friend.nameZh || friend.name, friend.nameEn || friend.name);
+}
+
+function challengePrompt(challenge = state.challenge) {
+  if (!challenge) return "";
+  return localize(challenge.promptZh || challenge.prompt, challenge.promptEn || challenge.prompt);
+}
+
+function challengeAnswerText(challenge = state.challenge) {
+  if (!challenge) return "";
+  return localize(challenge.answerTextZh || challenge.answerText, challenge.answerTextEn || challenge.answerText);
+}
+
+function choiceLabel(choice) {
+  if (choice.type === "number") return String(choice.value);
+  if (choice.type === "shape") return shapeName(choice.token);
+  return localize(choice.labelZh, choice.labelEn);
+}
+
+function bilingualFeedback(zh, en) {
+  return `${zh} ${en}`;
 }
 
 function randomInt(min, max) {
@@ -143,35 +241,41 @@ function numberChoices(answer, min = 1, max = 8) {
 }
 
 function makeCountChallenge() {
-  const count = randomInt(1, 6);
+  const config = ageConfig();
+  const count = randomInt(1, config.maxCount);
   const item = sample(itemKinds);
   const promptAudioKey = `count-${item.id}-${count}`;
   return {
     type: "count",
-    prompt: `花园里有几颗${item.label}？`,
+    promptZh: `花园里有几颗${item.labelZh}？`,
+    promptEn: `How many ${item.labelEn} are in the garden?`,
     promptAudioKey,
-    promptAudio: promptAudioPath(promptAudioKey),
+    promptAudio: count <= 6 ? promptAudioPath(promptAudioKey) : "",
     answerKey: String(count),
-    answerText: String(count),
-    choices: numberChoices(count, 1, 8),
+    answerTextZh: String(count),
+    answerTextEn: String(count),
+    choices: numberChoices(count, 1, Math.max(config.maxCount, 6)),
     scene: { count, item },
   };
 }
 
 function makeAddChallenge() {
-  const left = randomInt(1, 3);
-  const right = randomInt(1, 6 - left);
+  const config = ageConfig();
+  const left = randomInt(1, Math.min(6, config.maxSum - 1));
+  const right = randomInt(1, Math.min(6, config.maxSum - left));
   const total = left + right;
   const item = sample(itemKinds);
   const promptAudioKey = `add-${item.id}-${left}-${right}`;
   return {
     type: "add",
-    prompt: `${left} 加 ${right}，一共有几颗${item.label}？`,
+    promptZh: `${left} 加 ${right}，一共有几颗${item.labelZh}？`,
+    promptEn: `${left} plus ${right}. How many ${item.labelEn} altogether?`,
     promptAudioKey,
-    promptAudio: promptAudioPath(promptAudioKey),
+    promptAudio: total <= 6 && left <= 3 ? promptAudioPath(promptAudioKey) : "",
     answerKey: String(total),
-    answerText: String(total),
-    choices: numberChoices(total, 1, 8),
+    answerTextZh: String(total),
+    answerTextEn: String(total),
+    choices: numberChoices(total, 1, Math.max(config.maxSum, 6)),
     scene: { left, right, item },
   };
 }
@@ -179,11 +283,13 @@ function makeAddChallenge() {
 function makePatternChallenge() {
   const selected = shuffle(shapeTokens).slice(0, 3);
   const patterns = [
-    { slots: [0, 1, 0, 1, 0, null], answer: 1 },
-    { slots: [0, 0, 1, 0, 0, null], answer: 1 },
-    { slots: [0, 1, 2, 0, 1, null], answer: 2 },
+    { level: 1, slots: [0, 1, 0, 1, 0, null], answer: 1 },
+    { level: 1, slots: [0, 0, 1, 0, 0, null], answer: 1 },
+    { level: 2, slots: [0, 1, 2, 0, 1, null], answer: 2 },
+    { level: 3, slots: [0, 1, 1, 0, 1, null], answer: 1 },
+    { level: 4, slots: [0, 1, 2, 1, 0, null], answer: 1 },
   ];
-  const pattern = sample(patterns);
+  const pattern = sample(patterns.filter((entry) => entry.level <= ageConfig().patternLevel));
   const answerToken = selected[pattern.answer];
   const distractors = shuffle(shapeTokens.filter((token) => token.id !== answerToken.id)).slice(0, 3);
   const choices = shuffle([answerToken, ...distractors]).map((token) => ({
@@ -194,11 +300,13 @@ function makePatternChallenge() {
 
   return {
     type: "pattern",
-    prompt: "接下来应该是哪一个图形？",
+    promptZh: "接下来应该是哪一个图形？",
+    promptEn: "Which shape comes next?",
     promptAudioKey: "pattern-next-shape",
     promptAudio: promptAudioPath("pattern-next-shape"),
     answerKey: answerToken.id,
-    answerText: answerToken.name,
+    answerTextZh: answerToken.nameZh,
+    answerTextEn: answerToken.nameEn,
     choices,
     scene: {
       slots: pattern.slots.map((tokenIndex) => (tokenIndex === null ? null : selected[tokenIndex])),
@@ -220,11 +328,13 @@ function makeLogicMatchChallenge() {
   const target = sample(shapeTokens);
   return {
     type: "logic-match",
-    prompt: "找一个和中间一样的图形？",
+    promptZh: "找一个和中间一样的图形？",
+    promptEn: "Find the shape that is the same.",
     promptAudioKey: "logic-find-same",
     promptAudio: promptAudioPath("logic-find-same"),
     answerKey: target.id,
-    answerText: target.name,
+    answerTextZh: target.nameZh,
+    answerTextEn: target.nameEn,
     choices: shapeChoices(target),
     scene: { target },
   };
@@ -235,11 +345,13 @@ function makeLogicOddChallenge() {
   const odd = sample(shapeTokens.filter((token) => token.id !== base.id));
   return {
     type: "logic-odd",
-    prompt: "哪一个不一样？",
+    promptZh: "哪一个不一样？",
+    promptEn: "Which one is different?",
     promptAudioKey: "logic-odd-one",
     promptAudio: promptAudioPath("logic-odd-one"),
     answerKey: odd.id,
-    answerText: odd.name,
+    answerTextZh: odd.nameZh,
+    answerTextEn: odd.nameEn,
     choices: shapeChoices(odd),
     scene: { slots: shuffle([base, base, base, odd]), odd },
   };
@@ -250,18 +362,68 @@ function makeLogicPairChallenge() {
   const answer = pair[1];
   return {
     type: "logic-pair",
-    prompt: "空格里应该放哪一个？",
+    promptZh: "空格里应该放哪一个？",
+    promptEn: "Which one belongs in the empty space?",
     promptAudioKey: "logic-complete-pair",
     promptAudio: promptAudioPath("logic-complete-pair"),
     answerKey: answer.id,
-    answerText: answer.name,
+    answerTextZh: answer.nameZh,
+    answerTextEn: answer.nameEn,
     choices: shapeChoices(answer),
     scene: { slots: [pair[0], pair[1], pair[0], null], answer },
   };
 }
 
+function makeCompareChallenge() {
+  const max = Math.min(ageConfig().maxCount, 9);
+  const item = sample(itemKinds);
+  const left = randomInt(1, max);
+  const right = randomInt(1, max);
+  const answerKey = left === right ? "same" : left > right ? "left" : "right";
+  return {
+    type: "compare",
+    promptZh: "哪边更多？",
+    promptEn: "Which side has more?",
+    promptAudioKey: "",
+    promptAudio: "",
+    answerKey,
+    answerTextZh: answerKey === "same" ? "一样多" : answerKey === "left" ? "左边" : "右边",
+    answerTextEn: answerKey === "same" ? "same" : answerKey,
+    choices: [
+      { type: "text", key: "left", labelZh: "左边", labelEn: "Left" },
+      { type: "text", key: "right", labelZh: "右边", labelEn: "Right" },
+      { type: "text", key: "same", labelZh: "一样多", labelEn: "Same" },
+    ],
+    scene: { left, right, item },
+  };
+}
+
+function makeSequenceChallenge() {
+  const config = ageConfig();
+  const step = state.age >= 6 ? sample([1, 2, 3]) : sample([1, 2]);
+  const startMax = Math.max(1, config.maxCount - step * 4);
+  const start = randomInt(1, startMax);
+  const slots = [start, start + step, start + step * 2, start + step * 3, null];
+  const answer = start + step * 4;
+  return {
+    type: "sequence",
+    promptZh: "接下来是哪个数字？",
+    promptEn: "What number comes next?",
+    promptAudioKey: "",
+    promptAudio: "",
+    answerKey: String(answer),
+    answerTextZh: String(answer),
+    answerTextEn: String(answer),
+    choices: numberChoices(answer, 1, Math.max(config.maxCount, answer + 2)),
+    scene: { slots, answer },
+  };
+}
+
 function makeLogicChallenge() {
-  return sample([makeLogicMatchChallenge, makeLogicOddChallenge, makeLogicPairChallenge])();
+  const makers = [makeLogicMatchChallenge, makeLogicOddChallenge, makeLogicPairChallenge];
+  if (ageConfig().logicLevel >= 2) makers.push(makeCompareChallenge);
+  if (ageConfig().logicLevel >= 3) makers.push(makeSequenceChallenge);
+  return sample(makers)();
 }
 
 function makeChallenge() {
@@ -274,6 +436,7 @@ function makeChallenge() {
 }
 
 function setChallenge(nextRound = false) {
+  state.adventure = "question";
   if (nextRound) state.round += 1;
   state.challenge = makeChallenge();
   state.feedback = "idle";
@@ -293,14 +456,14 @@ function choiceToNode(choice, index) {
   button.className = "choice-button";
   button.type = "button";
   button.dataset.key = choice.key;
-  button.setAttribute("aria-label", `答案 ${index + 1}: ${choice.type === "number" ? choice.value : choice.token.name}`);
+  button.setAttribute("aria-label", `${localize("答案", "Answer")} ${index + 1}: ${choiceLabel(choice)}`);
 
   if (choice.type === "number") {
     const number = document.createElement("span");
     number.className = "choice-number";
     number.textContent = choice.value;
     button.appendChild(number);
-  } else {
+  } else if (choice.type === "shape") {
     const swatch = document.createElement("span");
     swatch.className = `choice-swatch shape-${choice.token.shape}`;
     swatch.style.backgroundColor = choice.token.color;
@@ -311,6 +474,11 @@ function choiceToNode(choice, index) {
       swatch.appendChild(face);
     }
     button.appendChild(swatch);
+  } else {
+    const label = document.createElement("span");
+    label.className = "choice-label";
+    label.textContent = choiceLabel(choice);
+    button.appendChild(label);
   }
 
   button.addEventListener("click", () => selectChoice(choice.key));
@@ -319,17 +487,34 @@ function choiceToNode(choice, index) {
 
 function renderChoices() {
   ui.choices.replaceChildren();
+  ui.choices.dataset.count = state.adventure === "question" && state.challenge ? String(state.challenge.choices.length) : "0";
+  if (state.adventure !== "question" || !state.challenge) return;
   state.challenge.choices.forEach((choice, index) => ui.choices.appendChild(choiceToNode(choice, index)));
 }
 
 function syncDom() {
-  ui.prompt.textContent = state.challenge.prompt;
+  document.documentElement.lang = state.language === "en" ? "en" : "zh-CN";
+  ui.title.textContent = uiText("title");
+  ui.prompt.textContent = state.adventure === "reward" ? rewardPrompt() : challengePrompt();
   ui.feedback.textContent = state.feedbackMessage;
-  ui.round.textContent = `第 ${state.round} 题`;
-  ui.star.textContent = `${state.stars} 颗星`;
-  ui.modeLabel.textContent = MODE_LABELS[state.mode];
-  document.querySelectorAll(".mode-button").forEach((button) => {
+  ui.round.textContent =
+    state.adventure === "reward"
+      ? localize(`第 ${state.level} 关完成`, `Level ${state.level} clear`)
+      : localize(`第 ${state.level} 关 · ${state.levelProgress + 1}/${levelGoal()}`, `Level ${state.level} · ${state.levelProgress + 1}/${levelGoal()}`);
+  ui.star.textContent = localize(`${state.age}岁 · ${state.stars} ${uiText("stars")}`, `Age ${state.age} · ${state.stars} ${uiText("stars")}`);
+  ui.modeLabel.textContent = modeLabel(state.mode);
+  ui.speak.textContent = uiText("listen");
+  ui.next.textContent = state.adventure === "reward" ? uiText("nextLevel") : uiText("next");
+  ui.modeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === state.mode);
+    button.textContent = modeButtonLabel(button.dataset.mode);
+  });
+  ui.ageButtons.forEach((button) => {
+    button.classList.toggle("active", Number(button.dataset.age) === state.age);
+    button.textContent = state.language === "en" ? `Age ${button.dataset.age}` : `${button.dataset.age}岁`;
+  });
+  ui.languageButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.language === state.language);
   });
   ui.choices.querySelectorAll(".choice-button").forEach((button) => {
     const key = button.dataset.key;
@@ -341,40 +526,72 @@ function syncDom() {
 }
 
 function selectChoice(key) {
-  if (state.feedback === "correct") return;
+  if (state.adventure !== "question" || state.feedback === "correct") return;
   state.lastSelectedKey = key;
   if (key === state.challenge.answerKey) {
-    const previousUnlocked = state.unlockedAnimals;
     state.feedback = "correct";
-    state.feedbackMessage = "答对了，花园长大一点！";
-    state.feedbackTimer = 900;
-    state.autoNextTimer = 1250;
+    state.feedbackMessage = bilingualFeedback("太棒了，答对了！", "Yes, that's correct!");
+    state.feedbackTimer = 1300;
     state.stars += 1;
-    state.unlockedAnimals = Math.min(animalFriends.length, 1 + Math.floor(state.stars / 3));
-    if (state.unlockedAnimals > previousUnlocked) {
-      const friend = animalFriends[state.unlockedAnimals - 1];
-      state.feedbackMessage = `${friend.name}也来花园玩啦！`;
-      state.mascotMessage = `${friend.name}来啦！`;
+    state.levelProgress += 1;
+    if (state.levelProgress >= levelGoal()) {
+      completeLevel();
     } else {
-      state.mascotMessage = sample(["太棒啦！", "你真会观察！", "花园亮起来啦！"]);
+      state.autoNextTimer = 1350;
+      state.mascotMessage = sample([
+        localize("太棒啦！", "Great job!"),
+        localize("你真会观察！", "Great observing!"),
+        localize("继续闯关！", "Keep going!"),
+      ]);
+      state.mascotMessageTimer = 1800;
+      state.animalBounce = 1;
+      addGardenBloom();
+      burstParticles();
     }
-    state.mascotMessageTimer = 1800;
-    state.animalBounce = 1;
-    addGardenBloom();
-    burstParticles();
     playSound("correct");
   } else {
     state.feedback = "wrong";
-    state.feedbackMessage = "再看一看，可以再试一次。";
-    state.mascotMessage = sample(["再试试！", "我陪你看一看。", "数慢一点。"]);
-    state.mascotMessageTimer = 1500;
+    state.feedbackMessage = bilingualFeedback("再想想哦。", "Think again.");
+    state.mascotMessage = localize("再试试！", "Try again!");
+    state.mascotMessageTimer = 1800;
     state.animalBounce = 0.35;
-    state.feedbackTimer = 850;
+    state.feedbackTimer = 1800;
     state.triedKeys.add(key);
     playSound("wrong");
   }
   syncDom();
   render();
+}
+
+function completeLevel() {
+  const newFriendIndex = state.level < animalFriends.length ? state.level : -1;
+  const rewardFriend = newFriendIndex > 0 ? animalFriends[newFriendIndex] : sample(animalFriends.slice(1));
+  if (newFriendIndex > 0) state.unlockedAnimals = Math.max(state.unlockedAnimals, newFriendIndex + 1);
+  state.rewardAnimal = rewardFriend;
+  state.rewardActivity = sample(activityKinds);
+  state.adventure = "reward";
+  state.feedback = "level";
+  state.feedbackMessage = bilingualFeedback("闯关成功！", "Level clear!");
+  state.mascotMessage = localize(`${animalName(rewardFriend)}来一起玩啦！`, `${animalName(rewardFriend)} joins the game!`);
+  state.mascotMessageTimer = 5200;
+  state.rewardTimer = 5600;
+  state.autoNextTimer = 0;
+  state.animalBounce = 1.2;
+  addGardenBloom();
+  burstParticles();
+  renderChoices();
+}
+
+function advanceLevel() {
+  state.level += 1;
+  state.levelProgress = 0;
+  state.round = 1;
+  state.rewardTimer = 0;
+  state.rewardAnimal = null;
+  state.adventure = "question";
+  state.feedback = "idle";
+  state.feedbackMessage = "";
+  setChallenge(false);
 }
 
 function addGardenBloom() {
@@ -497,21 +714,24 @@ function playSound(kind) {
   playPluck(440, { gain: 0.035, duration: 0.24, filter: 2200 });
 }
 
-function chooseSpeechVoice() {
+function chooseSpeechVoice(language = state.language) {
   if (!window.speechSynthesis) return null;
   const voices = window.speechSynthesis.getVoices();
-  const chineseVoices = voices.filter((voice) => /^zh/i.test(voice.lang));
-  const naturalNames = ["xiaoxiao", "tingting", "meijia", "sin-ji", "yunxi", "google 普通话", "google mandarin"];
+  const wantedVoices = voices.filter((voice) => (language === "en" ? /^en/i : /^zh/i).test(voice.lang));
+  const naturalNames =
+    language === "en"
+      ? ["samantha", "karen", "daniel", "google us english", "google uk english"]
+      : ["xiaoxiao", "tingting", "meijia", "sin-ji", "yunxi", "google 普通话", "google mandarin"];
   return (
-    chineseVoices.find((voice) => naturalNames.some((name) => voice.name.toLowerCase().includes(name))) ||
-    chineseVoices.find((voice) => voice.lang.toLowerCase() === "zh-cn") ||
-    chineseVoices[0] ||
+    wantedVoices.find((voice) => naturalNames.some((name) => voice.name.toLowerCase().includes(name))) ||
+    wantedVoices.find((voice) => voice.lang.toLowerCase() === (language === "en" ? "en-us" : "zh-cn")) ||
+    wantedVoices[0] ||
     null
   );
 }
 
 function preloadPromptAudio() {
-  const src = state.challenge?.promptAudio || "";
+  const src = state.language === "zh" ? state.challenge?.promptAudio || "" : "";
   promptAudioSrc = src;
   promptAudio = null;
   if (!src) return;
@@ -536,15 +756,15 @@ function stopPromptAudio() {
 function speakPromptWithSystemVoice() {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(state.challenge.prompt);
-  const voice = preferredSpeechVoice || chooseSpeechVoice();
+  const utterance = new SpeechSynthesisUtterance(challengePrompt());
+  const voice = preferredSpeechVoice || chooseSpeechVoice(state.language);
   if (voice) {
     utterance.voice = voice;
     utterance.lang = voice.lang;
   } else {
-    utterance.lang = "zh-CN";
+    utterance.lang = state.language === "en" ? "en-US" : "zh-CN";
   }
-  utterance.rate = 0.82;
+  utterance.rate = state.language === "en" ? 0.86 : 0.82;
   utterance.pitch = 1.06;
   utterance.volume = 0.92;
   window.speechSynthesis.speak(utterance);
@@ -553,7 +773,7 @@ function speakPromptWithSystemVoice() {
 function speakPrompt() {
   if (!state.challenge) return;
   stopPromptAudio();
-  const src = state.challenge.promptAudio;
+  const src = state.language === "zh" ? state.challenge.promptAudio : "";
   if (!src) {
     speakPromptWithSystemVoice();
     return;
@@ -571,6 +791,12 @@ function handleCanvasTap(event) {
   const point = canvasPoint(event);
   addTapSparkles(point.x, point.y);
 
+  if (state.adventure === "reward") {
+    state.rewardTimer = 250;
+    playSound("animal");
+    return;
+  }
+
   if (state.feedback === "correct") {
     setChallenge(true);
     return;
@@ -578,7 +804,7 @@ function handleCanvasTap(event) {
 
   const friend = hitAnimalFriend(point.x, point.y);
   if (friend) {
-    state.mascotMessage = `${friend.name}跳起来啦！`;
+    state.mascotMessage = localize(`${animalName(friend)}跳起来啦！`, `${animalName(friend)} jumps!`);
     state.mascotMessageTimer = 1500;
     state.animalBounce = 1;
     playSound("animal");
@@ -587,7 +813,7 @@ function handleCanvasTap(event) {
     return;
   }
 
-  state.mascotMessage = "听题目，再选答案！";
+  state.mascotMessage = localize("听题目，再选答案！", "Listen, then choose!");
   state.mascotMessageTimer = 1200;
   playSound("tap");
   speakPrompt();
@@ -622,11 +848,18 @@ function update(dt) {
   state.time += dt;
   state.animalBounce = Math.max(0, state.animalBounce - dt * 2.4);
   state.mascotMessageTimer = Math.max(0, state.mascotMessageTimer - dt * 1000);
+  if (state.adventure === "reward" && state.rewardTimer > 0) {
+    state.rewardTimer -= dt * 1000;
+    if (state.rewardTimer <= 0) {
+      advanceLevel();
+      return;
+    }
+  }
   if (state.feedback === "wrong" && state.feedbackTimer > 0) {
     state.feedbackTimer -= dt * 1000;
     if (state.feedbackTimer <= 0) {
       state.feedback = "idle";
-      state.feedbackMessage = "可以继续选。";
+      state.feedbackMessage = bilingualFeedback("可以继续选。", "Try again.");
       syncDom();
     }
   }
@@ -970,32 +1203,41 @@ function drawAnimalFriend(friend, index) {
 }
 
 function drawChallenge() {
+  if (state.adventure === "reward") {
+    drawRewardScene();
+    return;
+  }
   if (state.challenge.type === "count") drawCountChallenge();
   if (state.challenge.type === "add") drawAddChallenge();
   if (state.challenge.type === "pattern") drawPatternChallenge();
   if (state.challenge.type === "logic-match") drawLogicMatchChallenge();
   if (state.challenge.type === "logic-odd") drawLogicOddChallenge();
   if (state.challenge.type === "logic-pair") drawLogicPairChallenge();
+  if (state.challenge.type === "compare") drawCompareChallenge();
+  if (state.challenge.type === "sequence") drawSequenceChallenge();
 }
 
 function drawCountChallenge() {
   const { count, item } = state.challenge.scene;
   const mobile = isPhoneLayout();
-  const positions = mobile ? layoutPositions(count, 266, 164, 428, 248) : layoutPositions(count, 330, 188, 300, 205);
-  drawQuestionBadge("数一数", 480, 142);
+  const positions = mobile ? layoutPositions(count, 120, 158, 720, 282) : layoutPositions(count, 210, 168, 540, 285);
+  const baseSize = count <= 6 ? 58 : count <= 9 ? 48 : 40;
+  const scale = count <= 6 ? 1.46 : count <= 9 ? 1.2 : 1.1;
+  drawQuestionBadge(localize("数一数", "Count"), 480, 142);
   positions.forEach((position, index) => {
-    drawItem(item, position.x, position.y, phoneScale(58 + (index % 2) * 5, 1.46));
+    drawItem(item, position.x, position.y, phoneScale(baseSize + (index % 2) * 4, scale));
   });
 }
 
 function drawAddChallenge() {
   const { left, right, item } = state.challenge.scene;
   const mobile = isPhoneLayout();
-  drawQuestionBadge("合起来", 480, 142);
+  const itemSize = Math.max(left, right) > 4 ? 42 : 48;
+  drawQuestionBadge(localize("合起来", "Add"), 480, 142);
   const leftLayout = mobile ? layoutPositions(left, 100, 200, 300, 178) : layoutPositions(left, 170, 220, 210, 140);
   const rightLayout = mobile ? layoutPositions(right, 560, 200, 300, 178) : layoutPositions(right, 580, 220, 210, 140);
-  leftLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(48, 1.55)));
-  rightLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(48, 1.55)));
+  leftLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(itemSize, 1.45)));
+  rightLayout.forEach((position) => drawItem(item, position.x, position.y, phoneScale(itemSize, 1.45)));
   ctx.fillStyle = palette.ink;
   ctx.font = `900 ${isPhoneLayout() ? 74 : 58}px ui-rounded, system-ui, sans-serif`;
   ctx.textAlign = "center";
@@ -1005,7 +1247,7 @@ function drawAddChallenge() {
 }
 
 function drawPatternChallenge() {
-  drawQuestionBadge("找规律", 480, 142);
+  drawQuestionBadge(localize("找规律", "Pattern"), 480, 142);
   const mobile = isPhoneLayout();
   const startX = mobile ? 132 : 174;
   const gap = mobile ? 140 : 122;
@@ -1021,14 +1263,14 @@ function drawPatternChallenge() {
 function drawLogicMatchChallenge() {
   const { target } = state.challenge.scene;
   const mobile = isPhoneLayout();
-  drawQuestionBadge("找一样", 480, 142);
+  drawQuestionBadge(localize("找一样", "Match"), 480, 142);
   drawShapeCard(target, 480, 304, mobile ? 224 : 150, mobile ? 152 : 96);
   drawStarShape(352, 286, mobile ? 32 : 20, mobile ? 15 : 9, palette.yellow);
   drawStarShape(608, 286, mobile ? 32 : 20, mobile ? 15 : 9, palette.yellow);
 }
 
 function drawLogicOddChallenge() {
-  drawQuestionBadge("找不同", 480, 142);
+  drawQuestionBadge(localize("找不同", "Odd one"), 480, 142);
   const mobile = isPhoneLayout();
   const startX = mobile ? 234 : 270;
   const gap = mobile ? 164 : 140;
@@ -1040,7 +1282,7 @@ function drawLogicOddChallenge() {
 }
 
 function drawLogicPairChallenge() {
-  drawQuestionBadge("配一配", 480, 142);
+  drawQuestionBadge(localize("配一配", "Pair"), 480, 142);
   const mobile = isPhoneLayout();
   const positions = [
     { x: mobile ? 390 : 410, y: mobile ? 250 : 252 },
@@ -1061,6 +1303,175 @@ function drawLogicPairChallenge() {
   state.challenge.scene.slots.forEach((token, index) => {
     drawShapeCard(token, positions[index].x, positions[index].y, mobile ? 148 : 104, mobile ? 104 : 66);
   });
+}
+
+function drawCompareChallenge() {
+  const { left, right, item } = state.challenge.scene;
+  const mobile = isPhoneLayout();
+  drawQuestionBadge(localize("比一比", "Compare"), 480, 142);
+  drawGroupPanel(98, 178, 330, 250, localize("左边", "Left"));
+  drawGroupPanel(532, 178, 330, 250, localize("右边", "Right"));
+  const leftPositions = layoutPositions(left, 130, 222, 264, 166);
+  const rightPositions = layoutPositions(right, 564, 222, 264, 166);
+  const maxGroup = Math.max(left, right);
+  const size = maxGroup > 6 ? 38 : maxGroup > 4 ? 44 : 50;
+  leftPositions.forEach((position) => drawItem(item, position.x, position.y, phoneScale(size, mobile ? 1.25 : 1)));
+  rightPositions.forEach((position) => drawItem(item, position.x, position.y, phoneScale(size, mobile ? 1.25 : 1)));
+  ctx.fillStyle = palette.ink;
+  ctx.font = "900 72px ui-rounded, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("?", 480, 302);
+}
+
+function drawSequenceChallenge() {
+  drawQuestionBadge(localize("数字规律", "Numbers"), 480, 142);
+  const slots = state.challenge.scene.slots;
+  const gap = isPhoneLayout() ? 154 : 136;
+  const startX = 480 - ((slots.length - 1) * gap) / 2;
+  slots.forEach((value, index) => {
+    drawNumberCard(value, startX + index * gap, 302, isPhoneLayout() ? 126 : 104);
+  });
+}
+
+function drawGroupPanel(x, y, width, height, label) {
+  ctx.fillStyle = "rgba(255, 253, 244, 0.52)";
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.12)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, 22);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = palette.muted;
+  ctx.font = "900 24px ui-rounded, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x + width / 2, y + 28);
+}
+
+function drawNumberCard(value, x, y, cardSize) {
+  ctx.fillStyle = "rgba(255, 253, 244, 0.9)";
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.16)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(x - cardSize / 2, y - cardSize / 2, cardSize, cardSize, 18);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = value === null ? palette.ink : palette.blue;
+  ctx.font = `950 ${value === null ? 58 : 52}px ui-rounded, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(value === null ? "?" : String(value), x, y + 2);
+}
+
+function rewardPrompt() {
+  const friend = state.rewardAnimal || animalFriends[1];
+  const activity = state.rewardActivity || activityKinds[0];
+  return localize(`找到${animalName(friend)}，一起${activity.zh}！`, `${animalName(friend)} and Bunny ${activity.promptEn}!`);
+}
+
+function drawRewardScene() {
+  const friend = state.rewardAnimal || animalFriends[1];
+  const activity = state.rewardActivity || activityKinds[0];
+  const bounce = Math.sin(state.time * 4) * 8 - state.animalBounce * 10;
+  drawRewardBanner(friend, activity);
+  if (activity.id === "swing") drawSwingReward(friend, bounce);
+  if (activity.id === "dance") drawDanceReward(friend, bounce);
+  if (activity.id === "climb") drawClimbReward(friend, bounce);
+  if (activity.id === "ball") drawBallReward(friend, bounce);
+}
+
+function drawRewardBanner(friend, activity) {
+  ctx.fillStyle = "rgba(255, 253, 244, 0.88)";
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.13)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(194, 92, 572, 86, 30);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = palette.ink;
+  ctx.font = "950 34px ui-rounded, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(uiText("levelClear"), 480, 118);
+  ctx.fillStyle = palette.muted;
+  ctx.font = "900 24px ui-rounded, system-ui, sans-serif";
+  ctx.fillText(localize(`${animalName(friend)}和兔兔一起${activity.zh}`, `${animalName(friend)} and Bunny ${activity.lineEn}`), 480, 152);
+}
+
+function rewardFriends(friend, bunnyX, friendX, y, bounce = 0) {
+  drawAnimalFriend({ ...animalFriends[0], x: bunnyX, y: y + bounce, r: 82 }, 0);
+  drawAnimalFriend({ ...friend, x: friendX, y: y - bounce * 0.7, r: 76 }, 1);
+}
+
+function drawSwingReward(friend, bounce) {
+  ctx.strokeStyle = palette.brown;
+  ctx.lineWidth = 12;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(250, 214);
+  ctx.lineTo(760, 214);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.38)";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(390, 214);
+  ctx.lineTo(360, 360 + bounce);
+  ctx.moveTo(610, 214);
+  ctx.lineTo(640, 360 - bounce);
+  ctx.stroke();
+  ctx.fillStyle = palette.orange;
+  ctx.beginPath();
+  ctx.roundRect(324, 360 + bounce, 112, 22, 12);
+  ctx.roundRect(584, 360 - bounce, 112, 22, 12);
+  ctx.fill();
+  rewardFriends(friend, 378, 638, 402, bounce * 0.35);
+}
+
+function drawDanceReward(friend, bounce) {
+  ["♪", "♫", "♪"].forEach((note, index) => {
+    ctx.fillStyle = [palette.violet, palette.red, palette.teal][index];
+    ctx.font = "900 44px ui-rounded, system-ui, sans-serif";
+    ctx.fillText(note, 330 + index * 150, 240 + Math.sin(state.time * 3 + index) * 12);
+  });
+  drawStarShape(480, 346, 46, 22, palette.yellow);
+  rewardFriends(friend, 382, 622, 390, bounce);
+}
+
+function drawClimbReward(friend, bounce) {
+  ctx.fillStyle = "rgba(255, 253, 244, 0.64)";
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.12)";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.roundRect(318, 202, 324, 260, 24);
+  ctx.fill();
+  ctx.stroke();
+  [0, 1, 2, 3, 4, 5, 6].forEach((index) => {
+    ctx.fillStyle = [palette.red, palette.blue, palette.yellow, palette.violet, palette.teal, palette.orange, palette.pink][index];
+    ctx.beginPath();
+    ctx.ellipse(370 + ((index * 77) % 236), 238 + index * 32, 22, 13, index * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  drawAnimalFriend({ ...animalFriends[0], x: 390, y: 382 + bounce * 0.2, r: 68 }, 0);
+  drawAnimalFriend({ ...friend, x: 570, y: 344 - bounce * 0.2, r: 68 }, 1);
+}
+
+function drawBallReward(friend, bounce) {
+  ctx.fillStyle = palette.sun;
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.16)";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(480, 358 + bounce, 58, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(36, 49, 43, 0.16)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(480, 358 + bounce, 36, 0, Math.PI * 2);
+  ctx.moveTo(422, 358 + bounce);
+  ctx.lineTo(538, 358 + bounce);
+  ctx.stroke();
+  rewardFriends(friend, 334, 666, 398, bounce * 0.5);
 }
 
 function drawShapeCard(token, x, y, cardSize, tokenSize) {
@@ -1355,8 +1766,10 @@ function render() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   drawBackground();
   drawChallenge();
-  drawGarden();
-  drawSpeechBubble();
+  if (state.adventure !== "reward") {
+    drawGarden();
+    drawSpeechBubble();
+  }
   drawParticles();
 }
 
@@ -1371,11 +1784,44 @@ function loop(timestamp) {
 
 function setMode(mode) {
   state.mode = mode;
+  resetQuest();
+  setChallenge(false);
+}
+
+function resetQuest() {
   state.round = 1;
+  state.level = 1;
+  state.levelProgress = 0;
   state.stars = 0;
   state.garden = [];
   state.particles = [];
+  state.unlockedAnimals = 1;
+  state.adventure = "question";
+  state.rewardTimer = 0;
+  state.rewardAnimal = null;
+  state.feedback = "idle";
+  state.feedbackMessage = "";
+  state.mascotMessage = localize("摸摸小动物，一起闯关！", "Tap an animal. Let's play!");
+  state.mascotMessageTimer = 3600;
+}
+
+function setAge(age) {
+  state.age = age;
+  resetQuest();
   setChallenge(false);
+}
+
+function setLanguage(language) {
+  state.language = language;
+  preferredSpeechVoice = chooseSpeechVoice(language);
+  if (state.adventure === "question" && state.feedback === "idle") {
+    state.mascotMessage = localize("摸摸小动物，一起闯关！", "Tap an animal. Let's play!");
+    state.mascotMessageTimer = 2600;
+  }
+  if (state.adventure === "question") renderChoices();
+  preloadPromptAudio();
+  syncDom();
+  render();
 }
 
 function toggleFullscreen() {
@@ -1388,10 +1834,22 @@ function toggleFullscreen() {
 
 function bindEvents() {
   canvas.addEventListener("pointerdown", handleCanvasTap);
-  ui.next.addEventListener("click", () => setChallenge(true));
+  ui.next.addEventListener("click", () => {
+    if (state.adventure === "reward") {
+      advanceLevel();
+      return;
+    }
+    setChallenge(false);
+  });
   ui.speak.addEventListener("click", speakPrompt);
-  document.querySelectorAll(".mode-button").forEach((button) => {
+  ui.modeButtons.forEach((button) => {
     button.addEventListener("click", () => setMode(button.dataset.mode));
+  });
+  ui.ageButtons.forEach((button) => {
+    button.addEventListener("click", () => setAge(Number(button.dataset.age)));
+  });
+  ui.languageButtons.forEach((button) => {
+    button.addEventListener("click", () => setLanguage(button.dataset.language));
   });
   window.addEventListener("keydown", (event) => {
     if (event.key === "f" || event.key === "F") {
@@ -1399,10 +1857,13 @@ function bindEvents() {
       return;
     }
     const index = Number(event.key) - 1;
-    if (Number.isInteger(index) && index >= 0 && index < state.challenge.choices.length) {
+    if (state.adventure === "question" && Number.isInteger(index) && index >= 0 && index < state.challenge.choices.length) {
       selectChoice(state.challenge.choices[index].key);
     }
-    if (event.key === "Enter") setChallenge(true);
+    if (event.key === "Enter") {
+      if (state.adventure === "reward") advanceLevel();
+      else setChallenge(false);
+    }
   });
 }
 
@@ -1410,40 +1871,77 @@ function renderGameToText() {
   const challenge = state.challenge;
   const payload = {
     coordinateSystem: "canvas 960x620, origin top-left, x increases right, y increases down",
+    age: state.age,
+    language: state.language,
     mode: state.mode,
+    adventure: state.adventure,
+    level: state.level,
+    levelProgress: state.levelProgress,
+    levelGoal: levelGoal(),
     round: state.round,
     stars: state.stars,
     feedback: state.feedback,
-    unlockedAnimals: animalFriends.slice(0, state.unlockedAnimals).map((friend) => friend.name),
+    feedbackMessage: state.feedbackMessage,
+    unlockedAnimals: animalFriends.slice(0, state.unlockedAnimals).map((friend) => animalName(friend)),
     mascotMessage: state.mascotMessageTimer > 0 ? state.mascotMessage : "",
-    prompt: challenge.prompt,
-    promptAudioKey: challenge.promptAudioKey,
-    answer: challenge.answerText,
-    choices: challenge.choices.map((choice, index) => ({
-      index: index + 1,
-      key: choice.key,
-      label: choice.type === "number" ? String(choice.value) : choice.token.name,
-    })),
-    scene:
-      challenge.type === "pattern" || challenge.type === "logic-odd" || challenge.type === "logic-pair"
+    reward:
+      state.adventure === "reward"
         ? {
-            type: challenge.type,
-            slots: challenge.scene.slots.map((slot) => (slot ? slot.name : "?")),
+            animal: state.rewardAnimal ? animalName(state.rewardAnimal) : "",
+            activity: state.rewardActivity ? localize(state.rewardActivity.zh, state.rewardActivity.en) : "",
+            prompt: rewardPrompt(),
           }
-        : challenge.type === "logic-match"
-          ? {
-              type: challenge.type,
-              target: challenge.scene.target.name,
-            }
-        : {
-            type: challenge.type,
-            item: challenge.scene.item.label,
-            count: challenge.scene.count,
-            left: challenge.scene.left,
-            right: challenge.scene.right,
-          },
+        : null,
+    prompt: state.adventure === "reward" ? rewardPrompt() : challengePrompt(challenge),
+    promptAudioKey: state.adventure === "reward" ? "" : challenge?.promptAudioKey || "",
+    answer: state.adventure === "reward" ? "" : challengeAnswerText(challenge),
+    choices:
+      state.adventure === "question" && challenge
+        ? challenge.choices.map((choice, index) => ({
+            index: index + 1,
+            key: choice.key,
+            label: choiceLabel(choice),
+          }))
+        : [],
+    scene: state.adventure === "reward" || !challenge ? null : renderSceneText(challenge),
   };
   return JSON.stringify(payload);
+}
+
+function renderSceneText(challenge) {
+  if (challenge.type === "pattern" || challenge.type === "logic-odd" || challenge.type === "logic-pair") {
+    return {
+      type: challenge.type,
+      slots: challenge.scene.slots.map((slot) => (slot ? shapeName(slot) : "?")),
+    };
+  }
+  if (challenge.type === "logic-match") {
+    return {
+      type: challenge.type,
+      target: shapeName(challenge.scene.target),
+    };
+  }
+  if (challenge.type === "compare") {
+    return {
+      type: challenge.type,
+      item: itemLabel(challenge.scene.item),
+      left: challenge.scene.left,
+      right: challenge.scene.right,
+    };
+  }
+  if (challenge.type === "sequence") {
+    return {
+      type: challenge.type,
+      slots: challenge.scene.slots.map((slot) => (slot === null ? "?" : String(slot))),
+    };
+  }
+  return {
+    type: challenge.type,
+    item: itemLabel(challenge.scene.item),
+    count: challenge.scene.count,
+    left: challenge.scene.left,
+    right: challenge.scene.right,
+  };
 }
 
 window.render_game_to_text = renderGameToText;

@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>小小数学花园</title>
+    <title>小兔子闯关花园</title>
     <meta name="theme-color" content="#bde9ff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="数学花园">
+    <meta name="apple-mobile-web-app-title" content="闯关花园">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23fffdf4'/%3E%3Ccircle cx='32' cy='22' r='10' fill='%23ffd45a'/%3E%3Cpath d='M32 32v18' stroke='%232f9b5c' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='24' cy='42' r='7' fill='%237bc86c'/%3E%3Ccircle cx='40' cy='42' r='7' fill='%237bc86c'/%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="icon.svg">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles.css?v=12">
+    <link rel="stylesheet" href="styles.css?v=14">
   </head>
   <body>
     <main class="game-app" aria-label="小小数学花园">
@@ -27,6 +27,19 @@
         <div class="stats" aria-live="polite">
           <span id="starMeter">0 颗星</span>
           <span id="modeLabel">混合练习</span>
+        </div>
+      </section>
+
+      <section class="settings-strip" aria-label="年龄和语言">
+        <div class="segmented-control" aria-label="年龄选择">
+          <button class="age-button active" type="button" data-age="3">3岁</button>
+          <button class="age-button" type="button" data-age="4">4岁</button>
+          <button class="age-button" type="button" data-age="5">5岁</button>
+          <button class="age-button" type="button" data-age="6">6岁</button>
+        </div>
+        <div class="segmented-control" aria-label="语言选择">
+          <button class="language-button active" type="button" data-language="zh">中文</button>
+          <button class="language-button" type="button" data-language="en">EN</button>
         </div>
       </section>
 
@@ -54,6 +67,6 @@
       </section>
     </main>
 
-    <script src="game.js?v=12"></script>
+    <script src="game.js?v=14"></script>
   </body>
 </html>

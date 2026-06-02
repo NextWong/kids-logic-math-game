@@ -1,7 +1,7 @@
 {
-  "name": "小小数学花园",
-  "short_name": "数学花园",
-  "description": "给 3-5 岁儿童练习数数、加法和图形规律的触屏小游戏。",
+  "name": "小兔子闯关花园",
+  "short_name": "闯关花园",
+  "description": "给 3-6 岁儿童练习数数、加法和逻辑规律的触屏小游戏。",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
